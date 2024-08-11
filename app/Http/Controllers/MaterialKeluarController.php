@@ -123,7 +123,7 @@ class MaterialKeluarController extends Controller
                 return redirect()->route('materialKeluar.add')->with('error', 'Data Material tidak ditemukan');
             }
 
-            $material_in_sum = MaterialMasuk::where('data_material_id', $request->nama_material)->sum('jumlah');
+            $material_in_sum = MaterialMasuk::where('data_material_id', $request->nama_material)->where('waktu', '<=', $request->waktu)->sum('jumlah');
             if ($material_in_sum < $request->jumlah) {
                 return redirect()->route('materialKeluar.add')->with('error', "Stok pada tanggal {$request->waktu} tidak mencukupi");
             }
@@ -181,6 +181,11 @@ class MaterialKeluarController extends Controller
 
             if (strtolower($request->satuan) != 'ton') {
                 return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('error', 'Satuan yang diinputkan harus ton');
+            }
+
+            $material_in_sum = MaterialMasuk::where('data_material_id', $material_keluar->data_material_id)->where('waktu', '<=', $request->waktu)->sum('jumlah');
+            if ($material_in_sum < $request->jumlah) {
+                return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('error', "Stok pada tanggal {$request->waktu} tidak mencukupi");
             }
 
             $stok_material = StokMaterial::where('data_material_id', $material_keluar->data_material_id)->first();
