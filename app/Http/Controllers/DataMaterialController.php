@@ -95,6 +95,12 @@ class DataMaterialController extends Controller
                 'kode_material' => 'required|string|max:100|unique:data_materials,kode_material',
             ]);
 
+            // Check if kode material already exist
+            $material = DataMaterial::where('kode_material', $request->kode_material)->first();
+            if ($material) {
+                return redirect()->route('dataMaterial.add')->with('error', 'Kode material sudah ada di database');
+            }
+
             DataMaterial::create([
                 'nama_material' => $request->nama_material,
                 'kode_material' => $request->kode_material,
