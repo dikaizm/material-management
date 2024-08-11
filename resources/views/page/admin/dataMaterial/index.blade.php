@@ -92,9 +92,7 @@
                 { "data": "created_by" },
                 { "data": "created_at" },
                 @if (auth()->user()->hasRole('admin'))
-                {
-                    { "data": "options" }
-                }
+                { "data": "options" }
                 @endif
             ],
             "language": {

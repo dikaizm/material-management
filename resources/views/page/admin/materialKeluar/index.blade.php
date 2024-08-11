@@ -94,9 +94,7 @@
                 { "data": "jumlah" },
                 { "data": "satuan" },
                 @if (auth()->user()->hasRole('admin'))
-                {
-                    { "data": "options" }
-                }
+                { "data": "options" }
                 @endif
             ],
             "language": {

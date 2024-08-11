@@ -72,8 +72,10 @@ class MaterialMasukController extends Controller
                 $materialMasukNestedData['jumlah'] = $material_masuk->jumlah;
                 $materialMasukNestedData['satuan'] = $material_masuk->satuan;
                 $materialMasukNestedData['created_by'] = $material_masuk->user->name;
-                $materialMasukNestedData['options'] = "<a href='$url'><i class='fas fa-edit fa-lg'></i></a>
+                if (auth()->user()->hasRole('admin')) {
+                    $materialMasukNestedData['options'] = "<a href='$url'><i class='fas fa-edit fa-lg'></i></a>
                     <a style='border: none; background-color:transparent;' class='hapusData' data-id='$material_masuk->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>";
+                }
                 $data_val[] = $materialMasukNestedData;
             }
         }

@@ -96,9 +96,7 @@
                 { "data": "satuan" },
                 { "data": "created_by" },
                 @if (auth()->user()->hasRole('admin'))
-                {
-                    { "data": "options" }
-                }
+                { "data": "options" }
                 @endif
             ],
             "language": {
