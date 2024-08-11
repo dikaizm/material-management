@@ -19,11 +19,12 @@ class MaterialMasukController extends Controller
     {
         $totalFilteredRecord = $totalDataRecord = $draw_val = "";
         $columns_list = array(
-            0 => 'waktu',
-            1 => 'data_material_id',
-            2 => 'jumlah',
-            3 => 'satuan',
-            4 => 'id',
+            0 => 'id',
+            1 => 'waktu',
+            2 => 'data_material_id',
+            3 => 'jumlah',
+            4 => 'satuan',
+            5 => 'created_by',
         );
 
         $totalDataRecord = MaterialMasuk::count();
@@ -43,9 +44,9 @@ class MaterialMasukController extends Controller
             $search_text = $request->input('search.value');
 
             $material_masuk_data = MaterialMasuk::where('waktu', 'LIKE', "%{$search_text}%")
-                ->orWhereHas('dataMaterial', function($query) use ($search_text) {
+                ->orWhereHas('dataMaterial', function ($query) use ($search_text) {
                     $query->where('nama_material', 'LIKE', "%{$search_text}%")
-                          ->orWhere('kode_material', 'LIKE', "%{$search_text}%");
+                        ->orWhere('kode_material', 'LIKE', "%{$search_text}%");
                 })
                 ->offset($start_val)
                 ->limit($limit_val)
@@ -53,9 +54,9 @@ class MaterialMasukController extends Controller
                 ->get();
 
             $totalFilteredRecord = MaterialMasuk::where('waktu', 'LIKE', "%{$search_text}%")
-                ->orWhereHas('dataMaterial', function($query) use ($search_text) {
+                ->orWhereHas('dataMaterial', function ($query) use ($search_text) {
                     $query->where('nama_material', 'LIKE', "%{$search_text}%")
-                          ->orWhere('kode_material', 'LIKE', "%{$search_text}%");
+                        ->orWhere('kode_material', 'LIKE', "%{$search_text}%");
                 })
                 ->count();
         }
@@ -70,7 +71,8 @@ class MaterialMasukController extends Controller
                 $materialMasukNestedData['kode_material'] = $material_masuk->dataMaterial->kode_material;
                 $materialMasukNestedData['jumlah'] = $material_masuk->jumlah;
                 $materialMasukNestedData['satuan'] = $material_masuk->satuan;
-                $materialMasukNestedData['options'] = "<a href='$url'><i class='fas fa-edit fa-lg'></i></a> 
+                $materialMasukNestedData['created_by'] = $material_masuk->user->name;
+                $materialMasukNestedData['options'] = "<a href='$url'><i class='fas fa-edit fa-lg'></i></a>
                     <a style='border: none; background-color:transparent;' class='hapusData' data-id='$material_masuk->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>";
                 $data_val[] = $materialMasukNestedData;
             }
@@ -102,39 +104,40 @@ class MaterialMasukController extends Controller
                 'data_material_id' => $request->nama_material,
                 'jumlah' => $request->jumlah,
                 'satuan' => $request->satuan,
+                'created_by' => auth()->user()->id,
             ]);
 
-            $StokMaterial=StokMaterial::where('data_material_id',$request->nama_material)->first();
-            if($StokMaterial){
-                $stok= $StokMaterial->stok;
-                $stokBaru= $stok + $request->jumlah;
-                $maksimumstok= $StokMaterial->maksimum_stok;
-                if ($maksimumstok>= $stokBaru) {
-                    $status= 'Tidak Overstock';
-                }else {
-                    $status= 'Overstock';
-                } 
-                StokMaterial::where('data_material_id',$request->nama_material)->update([
-                    'stok'=>$stokBaru,
-                    'status'=>$status
+            $StokMaterial = StokMaterial::where('data_material_id', $request->nama_material)->first();
+            if ($StokMaterial) {
+                $stok = $StokMaterial->stok;
+                $stokBaru = $stok + $request->jumlah;
+                $maksimumstok = $StokMaterial->maksimum_stok;
+                if ($maksimumstok >= $stokBaru) {
+                    $status = 'Tidak Overstock';
+                } else {
+                    $status = 'Overstock';
+                }
+                StokMaterial::where('data_material_id', $request->nama_material)->update([
+                    'stok' => $stokBaru,
+                    'status' => $status
                 ]);
-               
-        }else{
-            StokMaterial::create([
-                'data_material_id'=> $request->nama_material,
-                'stok'=> $request->jumlah,
-            ]);
-        };
-        return redirect()->route('materialMasuk.add')->with('status', 'Data telah tersimpan di database');
+            } else {
+                StokMaterial::create([
+                    'data_material_id' => $request->nama_material,
+                    'stok' => $request->jumlah,
+                    'maksimum_stok' => 20,
+                ]);
+            };
+            return redirect()->route('materialMasuk.add')->with('status', 'Data telah tersimpan di database');
         }
 
-        
+
 
         $dataMaterials = DataMaterial::all();
         return view('page.admin.materialMasuk.addMaterialMasuk', compact('dataMaterials'));
     }
 
-   
+
     public function ubahMaterialMasuk($id, Request $request)
     {
         $material_masuk = MaterialMasuk::findOrFail($id);
@@ -172,7 +175,8 @@ class MaterialMasukController extends Controller
         ]);
     }
 
-    public function downloadPdf() {
+    public function downloadPdf()
+    {
         $material = MaterialMasuk::with('dataMaterial')->get();
 
         $pdf = FacadePdf::loadView('page.admin.materialMasuk.dataMaterialMasukPdf', ['material' => $material]);

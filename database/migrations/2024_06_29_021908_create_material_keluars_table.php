@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreignId('data_material_id')->constrained('data_materials')->onDelete('cascade');
             $table->integer('jumlah');
             $table->string('satuan');
+            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

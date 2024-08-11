@@ -13,12 +13,11 @@ class AkunController extends Controller
     public function index()
     {
         $user = Auth::user();
-        if ($user->posisi=='admin') {
+        if ($user->posisi == 'admin') {
             return view('page.admin.akun.index');
-        }else {
+        } else {
             return redirect()->route('home')->with('status', 'Akses Ditangguhkan, Hanya Admin Yang Dapat Mengakses');
         }
-        
     }
 
     public function dataTable(Request $request)
@@ -41,8 +40,7 @@ class AkunController extends Controller
         $order_val = $columns_list[$request->input('order.0.column')];
         $dir_val = $request->input('order.0.dir');
 
-        if (empty($request->input('search.value')))
-        {
+        if (empty($request->input('search.value'))) {
             $akun_data = User::where('id', '!=', Auth::id())
                 ->offset($start_val)
                 ->limit($limit_val)
@@ -70,10 +68,8 @@ class AkunController extends Controller
         }
 
         $data_val = array();
-        if (!empty($akun_data))
-        {
-            foreach ($akun_data as $akun_val)
-            {
+        if (!empty($akun_data)) {
+            foreach ($akun_data as $akun_val) {
                 $url = route('akun.edit', ['id' => $akun_val->id]);
                 $urlHapus = route('akun.delete', $akun_val->id);
                 if ($akun_val->user_image) {
@@ -103,36 +99,36 @@ class AkunController extends Controller
     public function tambahAkun(Request $request)
     {
         $user = Auth::user();
-        if ($user->posisi=='admin') {
-        if ($request->isMethod('post')) {
+        if ($user->posisi == 'admin') {
+            if ($request->isMethod('post')) {
 
-            $this->validate($request, [
-                'name' => 'required|string|max:200|min:3',
-                'email' => 'required|string|min:3|email|unique:users,email',
-                'password' => 'required|min:8|confirmed',
-                'password_confirmation' => 'required|min:8',
-                'posisi' => 'required|string|max:100',
-                'user_image' => 'image|mimes:jpg,png,jpeg,gif,svg'
-            ]);
-            $img = null;
-            if ($request->file('user_image')) {
-                $nama_gambar = time() . '_' . $request->file('user_image')->getClientOriginalName();
-                $upload = $request->user_image->storeAs('public/admin/user_profile', $nama_gambar);
-                $img = Storage::url($upload);
+                $this->validate($request, [
+                    'name' => 'required|string|max:200|min:3',
+                    'email' => 'required|string|min:3|email|unique:users,email',
+                    'password' => 'required|min:8|confirmed',
+                    'password_confirmation' => 'required|min:8',
+                    'posisi' => 'required|string|max:100',
+                    'user_image' => 'image|mimes:jpg,png,jpeg,gif,svg'
+                ]);
+                $img = null;
+                if ($request->file('user_image')) {
+                    $nama_gambar = time() . '_' . $request->file('user_image')->getClientOriginalName();
+                    $upload = $request->user_image->storeAs('public/admin/user_profile', $nama_gambar);
+                    $img = Storage::url($upload);
+                }
+                User::create([
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'password' => Hash::make($request->password),
+                    'posisi' => $request->posisi,
+                    'user_image' => $img
+                ]);
+                return redirect()->route('akun.add')->with('status', 'Data telah tersimpan di database');
             }
-            User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'posisi' => $request->posisi,
-                'user_image' => $img
-            ]);
-            return redirect()->route('akun.add')->with('status', 'Data telah tersimpan di database');
+            return view('page.admin.akun.addAkun');
+        } else {
+            return redirect()->route('home')->with('status', 'Akses Ditangguhkan, Hanya Admin Yang Dapat Mengakses');
         }
-        return view('page.admin.akun.addAkun');
-    }else {
-        return redirect()->route('home')->with('status', 'Akses Ditangguhkan, Hanya Admin Yang Dapat Mengakses');
-    }
     }
 
     public function ubahAkun($id, Request $request)

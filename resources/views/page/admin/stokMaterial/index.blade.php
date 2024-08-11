@@ -51,7 +51,9 @@
                         <th>Stok</th>
                         <th>Maksimum Stok</th>
                         <th>Status</th>
-                        <th>Action</th>
+                        @if (auth()->user()->hasRole('admin'))
+                            <th>Action</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -81,17 +83,21 @@
                 }
             },
             "columns": [
-                { 
+                {
                     "data": null,
                     "sortable": false,
-                    "searchable": false 
+                    "searchable": false
                 },
                 { "data": "nama_material" },
                 { "data": "kode_material" },
                 { "data": "stok" },
                 { "data": "maksimum_stok" },
                 { "data": "status" },
-                { "data": "options" }
+                @if (auth()->user()->hasRole('admin'))
+                {
+                    { "data": "options" }
+                }
+                @endif
             ],
             "language": {
                 "decimal": "",

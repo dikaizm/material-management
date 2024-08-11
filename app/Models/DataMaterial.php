@@ -12,6 +12,7 @@ class DataMaterial extends Model
     protected $fillable = [
         'nama_material',
         'kode_material',
+        'created_by',
     ];
 
     public function materialMasuks()
@@ -27,5 +28,10 @@ class DataMaterial extends Model
     public function stokMaterial()
     {
         return $this->hasOne(StokMaterial::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

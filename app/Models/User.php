@@ -44,4 +44,14 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function hasRole($role)
+    {
+        return null !== $this->posisi && $role == $this->posisi;
+    }
+
+    public function dataMaterials()
+    {
+        return $this->hasMany(DataMaterial::class, 'created_by');
+    }
 }

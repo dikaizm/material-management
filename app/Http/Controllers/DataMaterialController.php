@@ -10,7 +10,7 @@ class DataMaterialController extends Controller
 {
     public function index()
     {
-        
+
         return view('page.admin.dataMaterial.index');
     }
 
@@ -18,9 +18,11 @@ class DataMaterialController extends Controller
     {
         $totalFilteredRecord = $totalDataRecord = $draw_val = "";
         $columns_list = array(
-            0 => 'nama_material',
-            1 => 'kode_material',
-            2 => 'id',
+            0 => 'id',
+            1 => 'nama_material',
+            2 => 'kode_material',
+            3 => 'created_by',
+            4 => 'created_at',
         );
 
         $totalDataRecord = DataMaterial::count();
@@ -54,12 +56,23 @@ class DataMaterialController extends Controller
         $data_val = array();
         if (!empty($material_data)) {
             foreach ($material_data as $material) {
+                $created_by = $material->user->name;
+                $waktu = date('d-m-Y', strtotime($material->created_at));
+
                 $url = route('dataMaterial.edit', ['id' => $material->id]);
                 $urlHapus = route('dataMaterial.delete', $material->id);
                 $materialNestedData['nama_material'] = $material->nama_material;
                 $materialNestedData['kode_material'] = $material->kode_material;
-                $materialNestedData['options'] = "<a href='$url'><i class='fas fa-edit fa-lg'></i></a> 
-                    <a style='border: none; background-color:transparent;' class='hapusData' data-id='$material->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>";
+                $materialNestedData['created_by'] = $created_by;
+                $materialNestedData['created_at'] = $waktu;
+
+                if (auth()->user()->hasRole('admin')) {
+                    $materialNestedData['options'] = "
+                        <a href='$url'><i class='fas fa-edit fa-lg'></i></a>
+                        <a style='border: none; background-color:transparent;' class='hapusData' data-id='$material->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>
+                    ";
+                }
+
                 $data_val[] = $materialNestedData;
             }
         }
@@ -85,6 +98,7 @@ class DataMaterialController extends Controller
             DataMaterial::create([
                 'nama_material' => $request->nama_material,
                 'kode_material' => $request->kode_material,
+                'created_by' => auth()->user()->id,
             ]);
 
             return redirect()->route('dataMaterial.add')->with('status', 'Data telah tersimpan di database');
@@ -98,7 +112,7 @@ class DataMaterialController extends Controller
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'nama_material' => 'required|string|max:200|min:3',
-                'kode_material' => 'required|string|max:100|unique:data_materials,kode_material,'.$material->id,
+                'kode_material' => 'required|string|max:100|unique:data_materials,kode_material,' . $material->id,
             ]);
 
             $material->update([
@@ -122,11 +136,11 @@ class DataMaterialController extends Controller
         ]);
     }
 
-    public function downloadPdf() {
+    public function downloadPdf()
+    {
         $material = DataMaterial::all();
 
         $pdf = FacadePdf::loadView('page.admin.dataMaterial.dataMaterialPdf', ['material' => $material]);
         return $pdf->download('data-material-pdf');
     }
-    
 }

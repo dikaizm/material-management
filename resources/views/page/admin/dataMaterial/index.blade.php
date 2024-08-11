@@ -48,7 +48,11 @@
                         <th>No</th>
                         <th>Nama Material</th>
                         <th>Kode Material</th>
-                        <th>Action</th>
+                        <th>Oleh</th>
+                        <th>Waktu</th>
+                        @if (auth()->user()->hasRole('admin'))
+                            <th>Action</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -78,14 +82,20 @@
                 }
             },
             "columns": [
-                { 
+                {
                     "data": null,
                     "sortable": false,
-                    "searchable": false 
+                    "searchable": false
                 },
                 { "data": "nama_material" },
                 { "data": "kode_material" },
-                { "data": "options" }
+                { "data": "created_by" },
+                { "data": "created_at" },
+                @if (auth()->user()->hasRole('admin'))
+                {
+                    { "data": "options" }
+                }
+                @endif
             ],
             "language": {
                 "decimal": "",

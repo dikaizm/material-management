@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->string('nama_material');
             $table->string('kode_material');
+            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

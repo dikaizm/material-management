@@ -51,7 +51,10 @@
                         <th>Kode Material</th>
                         <th>Jumlah</th>
                         <th>Satuan</th>
-                        <th>Action</th>
+                        <th>Oleh</th>
+                        @if (auth()->user()->hasRole('admin'))
+                            <th>Action</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -81,17 +84,22 @@
                 }
             },
             "columns": [
-                { 
+                {
                     "data": null,
                     "sortable": false,
-                    "searchable": false 
+                    "searchable": false
                 },
                 { "data": "waktu" },
                 { "data": "nama_material" },
                 { "data": "kode_material" },
                 { "data": "jumlah" },
                 { "data": "satuan" },
-                { "data": "options" }
+                { "data": "created_by" },
+                @if (auth()->user()->hasRole('admin'))
+                {
+                    { "data": "options" }
+                }
+                @endif
             ],
             "language": {
                 "decimal": "",

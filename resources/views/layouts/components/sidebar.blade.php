@@ -4,11 +4,13 @@
           'href' => route('home'),
           'text' => 'Dasboard',
           'icon' => 'fas fa-home',
+          'admin_only' => false,
           'is_multi' => false,
       ],
       [
           'text' => 'Kelola Akun',
           'icon' => 'fas fa-users',
+          'admin_only' => true,
           'is_multi' => true,
           'href' => [
               [
@@ -26,6 +28,7 @@
       [
           'text' => 'Data Material',
           'icon' => 'fas fa-table',
+          'admin_only' => false,
           'is_multi' => true,
           'href' => [
               [
@@ -43,6 +46,7 @@
       [
           'text' => 'Material Masuk',
           'icon' => 'fas fa-arrow-down',
+          'admin_only' => false,
           'is_multi' => true,
           'href' => [
               [
@@ -60,6 +64,7 @@
       [
           'text' => 'Material Keluar',
           'icon' => 'fas fa-arrow-up',
+          'admin_only' => false,
           'is_multi' => true,
           'href' => [
               [
@@ -77,6 +82,7 @@
       [
           'text' => 'Stok Material',
           'icon' => 'fas fa-truck',
+          'admin_only' => false,
           'is_multi' => true,
           'href' => [
               [
@@ -94,7 +100,6 @@
   <!-- Brand Logo -->
   <a href="#" class="brand-link">
     <img src="{{ asset('vendor/adminlte3/img/logo1.png') }}" style="width:230px; height: 130px;">
-
   </a>
 
   <!-- Sidebar -->
@@ -117,6 +122,10 @@
         <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
         @foreach ($navigation_links as $link)
+          @if ($link->admin_only && !auth()->user()->hasRole('admin'))
+            @continue
+          @endif
+
           @if (!$link->is_multi)
             <li class="nav-item">
               <a href="{{ url()->current() == $link->href ? '#' : $link->href }}"

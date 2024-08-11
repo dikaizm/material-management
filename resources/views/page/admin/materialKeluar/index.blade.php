@@ -51,7 +51,9 @@
                         <th>Kode Material</th>
                         <th>Jumlah</th>
                         <th>Satuan</th>
-                        <th>Action</th>
+                        @if (auth()->user()->hasRole('admin'))
+                            <th>Action</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -91,7 +93,11 @@
                 { "data": "kode_material" },
                 { "data": "jumlah" },
                 { "data": "satuan" },
-                { "data": "options" }
+                @if (auth()->user()->hasRole('admin'))
+                {
+                    { "data": "options" }
+                }
+                @endif
             ],
             "language": {
                 "decimal": "",
