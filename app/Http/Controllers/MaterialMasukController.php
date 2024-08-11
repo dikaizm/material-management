@@ -7,6 +7,7 @@ use App\Models\MaterialMasuk;
 use App\Models\StokMaterial;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
+use Carbon\Carbon;
 
 class MaterialMasukController extends Controller
 {
@@ -19,8 +20,8 @@ class MaterialMasukController extends Controller
     {
         $totalFilteredRecord = $totalDataRecord = $draw_val = "";
         $columns_list = array(
-            0 => 'id',
-            1 => 'waktu',
+            0 => 'waktu',
+            1 => 'id',
             2 => 'data_material_id',
             3 => 'jumlah',
             4 => 'satuan',
@@ -64,9 +65,11 @@ class MaterialMasukController extends Controller
         $data_val = array();
         if (!empty($material_masuk_data)) {
             foreach ($material_masuk_data as $material_masuk) {
+                $waktu = date('d-m-Y', strtotime($material_masuk->waktu));
+
                 $url = route('materialMasuk.edit', ['id' => $material_masuk->id]);
                 $urlHapus = route('materialMasuk.delete', $material_masuk->id);
-                $materialMasukNestedData['waktu'] = $material_masuk->waktu;
+                $materialMasukNestedData['waktu'] = $waktu;
                 $materialMasukNestedData['nama_material'] = $material_masuk->dataMaterial->nama_material;
                 $materialMasukNestedData['kode_material'] = $material_masuk->dataMaterial->kode_material;
                 $materialMasukNestedData['jumlah'] = $material_masuk->jumlah;
@@ -101,6 +104,10 @@ class MaterialMasukController extends Controller
                 'satuan' => 'required|string|max:9999',
             ]);
 
+            if (Carbon::parse($request->waktu)->gt(Carbon::now('Asia/Jakarta'))) {
+                return redirect()->route('materialMasuk.add')->with('error', 'Waktu yang diinputkan tidak boleh lebih dari hari ini.');
+            }
+
             if ($request->jumlah <= 0) {
                 return redirect()->route('materialMasuk.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
             }
@@ -113,7 +120,7 @@ class MaterialMasukController extends Controller
                 'waktu' => $request->waktu,
                 'data_material_id' => $request->nama_material,
                 'jumlah' => $request->jumlah,
-                'satuan' => $request->satuan,
+                'satuan' => strtolower($request->satuan),
                 'created_by' => auth()->user()->id,
             ]);
 
@@ -141,8 +148,6 @@ class MaterialMasukController extends Controller
             return redirect()->route('materialMasuk.add')->with('status', 'Data telah tersimpan di database');
         }
 
-
-
         $dataMaterials = DataMaterial::all();
         return view('page.admin.materialMasuk.addMaterialMasuk', compact('dataMaterials'));
     }
@@ -160,20 +165,24 @@ class MaterialMasukController extends Controller
                 'satuan' => 'required|string|max:50',
             ]);
 
-            if ($request->jumlah <= 0) {
-                return redirect()->route('materialMasuk.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
+            if (Carbon::parse($request->waktu)->gt(Carbon::now('Asia/Jakarta'))) {
+                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', 'Waktu yang diinputkan tidak boleh lebih dari hari ini.');
             }
 
-            $old_stok = $material_masuk->jumlah;
-            $material_masuk->update([
-                'waktu' => $request->waktu,
-                // 'data_material_id' => $request->nama_material,
-                'jumlah' => $request->jumlah,
-                'satuan' => $request->satuan,
-            ]);
+            if ($request->jumlah <= 0) {
+                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
+            }
 
             $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->first();
             if ($stok_material) {
+                $old_stok = $material_masuk->jumlah;
+                $material_masuk->update([
+                    'waktu' => $request->waktu,
+                    // 'data_material_id' => $request->nama_material,
+                    'jumlah' => $request->jumlah,
+                    'satuan' => strtolower($request->satuan),
+                ]);
+
                 $stok = $stok_material->stok;
                 $stokBaru = $stok - $old_stok + $request->jumlah;
                 $maksimumstok = $stok_material->maksimum_stok;
@@ -207,6 +216,13 @@ class MaterialMasukController extends Controller
         if ($stok_material) {
             $stok = $stok_material->stok;
             $stokBaru = $stok - $material_masuk->jumlah;
+            if ($stokBaru < 0) {
+                // 400 Bad Request
+                return response()->json([
+                    'msg' => "Stok tidak boleh kurang dari 0, hapus material keluar {$material_masuk->dataMaterial->kode_material} terlebih dahulu",
+                ], 400);
+            }
+
             $maksimumstok = $stok_material->maksimum_stok;
             if ($maksimumstok >= $stokBaru) {
                 $status = 'Tidak Overstock';

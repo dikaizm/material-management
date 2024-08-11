@@ -17,6 +17,7 @@
       </div>
     </div><!-- /.container-fluid -->
   </section>
+
   @if (session('status'))
     <div class="alert alert-success alert-dismissible">
       <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
@@ -24,22 +25,28 @@
       {{ session('status') }}
     </div>
   @endif
+
   <section class="content">
     <div class="container">
 
-      <div class="row">
-        <div class="col-12">
-          <div id="chartMaterials" style="width:100%; height: 480px;"></div>
+      <div class="col-12" style="padding: 0px;">
+        <div class="card card-primary">
+          <div class="card-header"style="background-color:#212e1f;">
+            <h3 class="card-title">GRAFIK PERSEDIAAN MATERIAL</h3>
+          </div>
+          <div class="p-3">
+            <canvas id="chart_material" style="width:100%; height: 400px;"></canvas>
+            <div id="legend_chart_material"
+              style="width: 100%; padding-top: 0.75rem"></div>
+          </div>
         </div>
       </div>
-
 
       <div class="row" style="padding-top: 20px;">
         <div class="col-md-6">
           <div class="card card-secondary">
             <div class="card-header"style="background-color:#212e1f;">
               <h3 class="card-title">TOTAL MATERIAL</h3>
-
 
             </div>
             <div class="card-body">
@@ -110,5 +117,6 @@
 
 @endsection
 <script>
-    
+  window.chartData = {!! json_encode($chartData) !!};
 </script>
+<script type="text/javascript" src="{{ asset('js/dashboard_chart.js') }}"></script>

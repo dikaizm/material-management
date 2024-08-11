@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DataMaterial;
 use App\Models\MaterialKeluar;
+use App\Models\MaterialMasuk;
 use App\Models\StokMaterial;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
@@ -19,8 +20,8 @@ class MaterialKeluarController extends Controller
     {
         $totalFilteredRecord = $totalDataRecord = $draw_val = "";
         $columns_list = array(
-            0 => 'id',
-            1 => 'waktu',
+            0 => 'waktu',
+            1 => 'id',
             2 => 'data_material_id',
             3 => 'jumlah',
             4 => 'satuan',
@@ -64,9 +65,11 @@ class MaterialKeluarController extends Controller
         $data_val = array();
         if (!empty($material_keluar_data)) {
             foreach ($material_keluar_data as $material_keluar) {
+                $waktu = date('d-m-Y', strtotime($material_keluar->waktu));
+
                 $url = route('materialKeluar.edit', ['id' => $material_keluar->id]);
                 $urlHapus = route('materialKeluar.delete', $material_keluar->id);
-                $materialKeluarNestedData['waktu'] = $material_keluar->waktu;
+                $materialKeluarNestedData['waktu'] = $waktu;
                 $materialKeluarNestedData['nama_material'] = $material_keluar->dataMaterial->nama_material;
                 $materialKeluarNestedData['kode_material'] = $material_keluar->dataMaterial->kode_material;
                 $materialKeluarNestedData['jumlah'] = $material_keluar->jumlah;
@@ -103,23 +106,33 @@ class MaterialKeluarController extends Controller
             ]);
 
             if ($request->jumlah <= 0) {
-                return redirect()->route('materialMasuk.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
+                return redirect()->route('materialKeluar.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
             }
 
-            MaterialKeluar::create([
-                'waktu' => $request->waktu,
-                'data_material_id' => $request->nama_material,
-                'jumlah' => $request->jumlah,
-                'satuan' => $request->satuan,
-                'created_by' => auth()->user()->id,
-            ]);
+            if (strtolower($request->satuan) != 'ton') {
+                return redirect()->route('materialKeluar.add')->with('error', 'Satuan yang diinputkan harus ton');
+            }
+
             $stok_material = StokMaterial::where('data_material_id', $request->nama_material)->first();
             if (!$stok_material) {
                 return redirect()->route('materialKeluar.add')->with('error', 'Data Material tidak ditemukan');
             }
 
-            if ($stok_material->stok >= $request->jumlah) {
-                $stok = $stok_material->stok;
+            $material_in_sum = MaterialMasuk::where('data_material_id', $request->nama_material)->sum('jumlah');
+            if ($material_in_sum < $request->jumlah) {
+                return redirect()->route('materialKeluar.add')->with('error', "Stok pada tanggal {$request->waktu} tidak mencukupi");
+            }
+
+            $stok = $stok_material->stok;
+            if ($stok >= $request->jumlah) {
+                MaterialKeluar::create([
+                    'waktu' => $request->waktu,
+                    'data_material_id' => $request->nama_material,
+                    'jumlah' => $request->jumlah,
+                    'satuan' => strtolower($request->satuan),
+                    'created_by' => auth()->user()->id,
+                ]);
+
                 $stokBaru = $stok - $request->jumlah;
                 $maksimumstok = $stok_material->maksimum_stok;
                 if ($maksimumstok >= $stokBaru) {
@@ -131,6 +144,8 @@ class MaterialKeluarController extends Controller
                     'stok' => $stokBaru,
                     'status' => $status
                 ]);
+            } else {
+                return redirect()->route('materialKeluar.add')->with('error', "Stok tidak mencukupi, stok saat ini: {$stok}");
             }
 
             return redirect()->route('materialKeluar.add')->with('status', 'Data telah tersimpan di database');
@@ -152,23 +167,23 @@ class MaterialKeluarController extends Controller
             ]);
 
             if ($request->jumlah <= 0) {
-                return redirect()->route('materialMasuk.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
+                return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
             }
 
             if (strtolower($request->satuan) != 'ton') {
-                return redirect()->route('materialMasuk.add')->with('error', 'Satuan yang diinputkan harus ton');
+                return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('error', 'Satuan yang diinputkan harus ton');
             }
 
-            $old_stok = $material_keluar->jumlah;
-            $material_keluar->update([
-                'waktu' => $request->waktu,
-                // 'data_material_id' => $request->nama_material,
-                'jumlah' => $request->jumlah,
-                'satuan' => $request->satuan,
-            ]);
-
-            $stok_material = StokMaterial::where('data_material_id', $request->nama_material)->first();
+            $stok_material = StokMaterial::where('data_material_id', $material_keluar->data_material_id)->first();
             if ($stok_material) {
+                $old_stok = $material_keluar->jumlah;
+                $material_keluar->update([
+                    'waktu' => $request->waktu,
+                    // 'data_material_id' => $request->nama_material,
+                    'jumlah' => $request->jumlah,
+                    'satuan' => strtolower($request->satuan),
+                ]);
+
                 $stok = $stok_material->stok;
                 $stokBaru = $stok + $old_stok - $request->jumlah;
                 $maksimumstok = $stok_material->maksimum_stok;

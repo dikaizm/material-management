@@ -157,6 +157,9 @@
                         success: function (response) {
                             Swal.fire('Terhapus!', response.msg, 'success');
                             $('#previewMaterialMasuk').DataTable().ajax.reload();
+                        },
+                        error: function (xhr) {
+                            Swal.fire('Gagal!', xhr.responseJSON.msg, 'error');
                         }
                     });
                 }

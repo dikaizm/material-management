@@ -96,7 +96,7 @@
   $navigation_links = json_decode(json_encode($links));
 @endphp
 <!-- Main Sidebar Container -->
-<aside class="main-sidebar sidebar-dark-primary elevation-4" style="background-color: #212e1f;">
+<aside class="main-sidebar sidebar-dark-primary elevation-4 position-fixed" style="background-color: #212e1f;">
   <!-- Brand Logo -->
   <a href="#" class="brand-link">
     <img src="{{ asset('vendor/adminlte3/img/logo1.png') }}" style="width:230px; height: 130px;">
