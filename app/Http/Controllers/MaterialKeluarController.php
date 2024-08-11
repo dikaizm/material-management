@@ -145,8 +145,8 @@ class MaterialKeluarController extends Controller
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'waktu' => 'required|date',
-                'nama_material' => 'required|exists:data_materials,id',
-                'kode_material' => 'required|exists:data_materials,id',
+                // 'nama_material' => 'required|exists:data_materials,id',
+                // 'kode_material' => 'required|exists:data_materials,id',
                 'jumlah' => 'required|integer',
                 'satuan' => 'required|string|max:9999',
             ]);
@@ -162,7 +162,7 @@ class MaterialKeluarController extends Controller
             $old_stok = $material_keluar->jumlah;
             $material_keluar->update([
                 'waktu' => $request->waktu,
-                'data_material_id' => $request->nama_material,
+                // 'data_material_id' => $request->nama_material,
                 'jumlah' => $request->jumlah,
                 'satuan' => $request->satuan,
             ]);
