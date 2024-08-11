@@ -13,7 +13,8 @@
         <link rel="stylesheet" href="{{ asset('vendor/adminlte3/plugins/fontawesome-free/css/all.min.css') }}">
         <!-- Theme style -->
         <link rel="stylesheet" href="{{ asset('vendor/adminlte3/css/adminlte.min.css') }}">
-        <script src="https://code.highcharts.com/highcharts.js"></script>
+        {{-- <script src="https://code.highcharts.com/highcharts.js"></script> --}}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.2.0/chart.umd.js"></script>
         @yield('script_head')
     </head>
     <body class="hold-transition sidebar-mini">

@@ -105,7 +105,7 @@ class MaterialMasukController extends Controller
                 return redirect()->route('materialMasuk.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
             }
 
-            if ($request->satuan != 'ton') {
+            if (strtolower($request->satuan) != 'ton') {
                 return redirect()->route('materialMasuk.add')->with('error', 'Satuan yang diinputkan harus ton');
             }
 
