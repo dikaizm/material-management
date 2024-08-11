@@ -104,7 +104,7 @@ class MaterialMasukController extends Controller
                 'satuan' => 'required|string|max:9999',
             ]);
 
-            if (Carbon::parse($request->waktu)->gt(Carbon::now('Asia/Jakarta'))) {
+            if (Carbon::parse($request->waktu)->toDateString() > Carbon::now('Asia/Jakarta')->toDateString()) {
                 return redirect()->route('materialMasuk.add')->with('error', 'Waktu yang diinputkan tidak boleh lebih dari hari ini.');
             }
 
@@ -165,7 +165,7 @@ class MaterialMasukController extends Controller
                 'satuan' => 'required|string|max:50',
             ]);
 
-            if (Carbon::parse($request->waktu)->gt(Carbon::now('Asia/Jakarta'))) {
+            if (Carbon::parse($request->waktu)->toDateString() > Carbon::now('Asia/Jakarta')->toDateString()) {
                 return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', 'Waktu yang diinputkan tidak boleh lebih dari hari ini.');
             }
 

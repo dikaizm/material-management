@@ -8,6 +8,7 @@ use App\Models\MaterialMasuk;
 use App\Models\StokMaterial;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
+use Carbon\Carbon;
 
 class MaterialKeluarController extends Controller
 {
@@ -105,6 +106,10 @@ class MaterialKeluarController extends Controller
                 'satuan' => 'required|string|max:9999',
             ]);
 
+            if (Carbon::parse($request->waktu)->toDateString() > Carbon::now('Asia/Jakarta')->toDateString()) {
+                return redirect()->route('materialKeluar.add')->with('error', 'Waktu yang diinputkan tidak boleh lebih dari hari ini.');
+            }
+
             if ($request->jumlah <= 0) {
                 return redirect()->route('materialKeluar.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
             }
@@ -165,6 +170,10 @@ class MaterialKeluarController extends Controller
                 'jumlah' => 'required|integer',
                 'satuan' => 'required|string|max:9999',
             ]);
+
+            if (Carbon::parse($request->waktu)->toDateString() > Carbon::now('Asia/Jakarta')->toDateString()) {
+                return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('error', 'Waktu yang diinputkan tidak boleh lebih dari hari ini.');
+            }
 
             if ($request->jumlah <= 0) {
                 return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
