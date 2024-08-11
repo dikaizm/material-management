@@ -87,7 +87,7 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-12">
+            <div class="col-md-6">
                 <a href="javascript:history.back()" class="btn btn-danger">Batal</a>
                 <input type="submit" value="Ubah Data Material" class="btn btn-success float-right">
             </div>

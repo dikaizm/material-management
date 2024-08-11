@@ -31,6 +31,15 @@
         {{ session('status') }}
     </div>
     @endif
+
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+        <h4><i class="icon fa fa-exclamation-circle"></i> Gagal!</h4>
+        {{ session('error') }}
+    </div>
+    @endif
+
     <form method="post" enctype="multipart/form-data">
         @csrf
         <div class="row">
@@ -139,7 +148,7 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-12">
+            <div class="col-md-6">
                 <a href="{{ route('materialMasuk.index') }}" class="btn btn-danger">Batal</a>
                 <input type="submit" value="Tambah Material Masuk" class="btn btn-success float-right">
             </div>

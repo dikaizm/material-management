@@ -19,11 +19,12 @@ class MaterialKeluarController extends Controller
     {
         $totalFilteredRecord = $totalDataRecord = $draw_val = "";
         $columns_list = array(
-            0 => 'waktu',
-            1 => 'data_material_id',
-            2 => 'jumlah',
-            3 => 'satuan',
-            4 => 'id',
+            0 => 'id',
+            1 => 'waktu',
+            2 => 'data_material_id',
+            3 => 'jumlah',
+            4 => 'satuan',
+            5 => 'created_by',
         );
 
         $totalDataRecord = MaterialKeluar::count();
@@ -43,9 +44,9 @@ class MaterialKeluarController extends Controller
             $search_text = $request->input('search.value');
 
             $material_keluar_data = MaterialKeluar::where('waktu', 'LIKE', "%{$search_text}%")
-                ->orWhereHas('dataMaterial', function($query) use ($search_text) {
+                ->orWhereHas('dataMaterial', function ($query) use ($search_text) {
                     $query->where('nama_material', 'LIKE', "%{$search_text}%")
-                          ->orWhere('kode_material', 'LIKE', "%{$search_text}%");
+                        ->orWhere('kode_material', 'LIKE', "%{$search_text}%");
                 })
                 ->offset($start_val)
                 ->limit($limit_val)
@@ -53,9 +54,9 @@ class MaterialKeluarController extends Controller
                 ->get();
 
             $totalFilteredRecord = MaterialKeluar::where('waktu', 'LIKE', "%{$search_text}%")
-                ->orWhereHas('dataMaterial', function($query) use ($search_text) {
+                ->orWhereHas('dataMaterial', function ($query) use ($search_text) {
                     $query->where('nama_material', 'LIKE', "%{$search_text}%")
-                          ->orWhere('kode_material', 'LIKE', "%{$search_text}%");
+                        ->orWhere('kode_material', 'LIKE', "%{$search_text}%");
                 })
                 ->count();
         }
@@ -70,8 +71,13 @@ class MaterialKeluarController extends Controller
                 $materialKeluarNestedData['kode_material'] = $material_keluar->dataMaterial->kode_material;
                 $materialKeluarNestedData['jumlah'] = $material_keluar->jumlah;
                 $materialKeluarNestedData['satuan'] = $material_keluar->satuan;
-                $materialKeluarNestedData['options'] = "<a href='$url'><i class='fas fa-edit fa-lg'></i></a> 
-                    <a style='border: none; background-color:transparent;' class='hapusData' data-id='$material_keluar->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>";
+                $materialKeluarNestedData['created_by'] = $material_keluar->user->name;
+                if (auth()->user()->hasRole('admin')) {
+                    $materialKeluarNestedData['options'] = "
+                        <a href='$url'><i class='fas fa-edit fa-lg'></i></a>
+                        <a style='border: none; background-color:transparent;' class='hapusData' data-id='$material_keluar->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>
+                    ";
+                }
                 $data_val[] = $materialKeluarNestedData;
             }
         }
@@ -96,29 +102,37 @@ class MaterialKeluarController extends Controller
                 'satuan' => 'required|string|max:9999',
             ]);
 
+            if ($request->jumlah <= 0) {
+                return redirect()->route('materialMasuk.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
+            }
+
             MaterialKeluar::create([
                 'waktu' => $request->waktu,
                 'data_material_id' => $request->nama_material,
                 'jumlah' => $request->jumlah,
                 'satuan' => $request->satuan,
+                'created_by' => auth()->user()->id,
             ]);
-            $StokMaterial=StokMaterial::where('data_material_id',$request->nama_material)->first();
-            if($StokMaterial->stok >= $request->jumlah) {
-                $stok= $StokMaterial->stok;
-                $stokBaru= $stok - $request->jumlah;
-                $maksimumstok= $StokMaterial->maksimum_stok;
-                if ($maksimumstok>= $stokBaru) {
-                    $status= 'Tidak Overstock';
-                }else {
-                    $status= 'Overstock';
-                } 
-                StokMaterial::where('data_material_id',$request->nama_material)->update([
-                    'stok'=>$stokBaru,
-                    'status'=>$status
+            $stok_material = StokMaterial::where('data_material_id', $request->nama_material)->first();
+            if (!$stok_material) {
+                return redirect()->route('materialKeluar.add')->with('error', 'Data Material tidak ditemukan');
+            }
+
+            if ($stok_material->stok >= $request->jumlah) {
+                $stok = $stok_material->stok;
+                $stokBaru = $stok - $request->jumlah;
+                $maksimumstok = $stok_material->maksimum_stok;
+                if ($maksimumstok >= $stokBaru) {
+                    $status = 'Tidak Overstock';
+                } else {
+                    $status = 'Overstock';
+                }
+                StokMaterial::where('data_material_id', $request->nama_material)->update([
+                    'stok' => $stokBaru,
+                    'status' => $status
                 ]);
-               
-        }
-            
+            }
+
             return redirect()->route('materialKeluar.add')->with('status', 'Data telah tersimpan di database');
         }
         $dataMaterials = DataMaterial::all();
@@ -137,12 +151,39 @@ class MaterialKeluarController extends Controller
                 'satuan' => 'required|string|max:9999',
             ]);
 
+            if ($request->jumlah <= 0) {
+                return redirect()->route('materialMasuk.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
+            }
+
+            if ($request->satuan != 'ton') {
+                return redirect()->route('materialMasuk.add')->with('error', 'Satuan yang diinputkan harus ton');
+            }
+
+            $old_stok = $material_keluar->jumlah;
             $material_keluar->update([
                 'waktu' => $request->waktu,
                 'data_material_id' => $request->nama_material,
                 'jumlah' => $request->jumlah,
                 'satuan' => $request->satuan,
             ]);
+
+            $stok_material = StokMaterial::where('data_material_id', $request->nama_material)->first();
+            if ($stok_material) {
+                $stok = $stok_material->stok;
+                $stokBaru = $stok + $old_stok - $request->jumlah;
+                $maksimumstok = $stok_material->maksimum_stok;
+                if ($maksimumstok >= $stokBaru) {
+                    $status = 'Tidak Overstock';
+                } else {
+                    $status = 'Overstock';
+                }
+                StokMaterial::where('data_material_id', $request->nama_material)->update([
+                    'stok' => $stokBaru,
+                    'status' => $status
+                ]);
+            } else {
+                return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('error', 'Data Material tidak ditemukan');
+            }
 
             return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('status', 'Data telah tersimpan di database');
         }
@@ -156,16 +197,34 @@ class MaterialKeluarController extends Controller
     public function hapusMaterialKeluar($id)
     {
         $material_keluar = MaterialKeluar::findOrFail($id);
+
+        $stok_material = StokMaterial::where('data_material_id', $material_keluar->data_material_id)->first();
+        if ($stok_material) {
+            $stok = $stok_material->stok;
+            $stokBaru = $stok + $material_keluar->jumlah;
+            $maksimumstok = $stok_material->maksimum_stok;
+            if ($maksimumstok >= $stokBaru) {
+                $status = 'Tidak Overstock';
+            } else {
+                $status = 'Overstock';
+            }
+            StokMaterial::where('data_material_id', $material_keluar->data_material_id)->update([
+                'stok' => $stokBaru,
+                'status' => $status
+            ]);
+        }
+
         $material_keluar->delete($id);
         return response()->json([
             'msg' => 'Data yang dipilih telah dihapus'
         ]);
     }
 
-    public function downloadPdf() {
+    public function downloadPdf()
+    {
         $material = MaterialKeluar::with('dataMaterial')->get();
 
         $pdf = FacadePdf::loadView('page.admin.materialKeluar.dataMaterialkeluarPdf', ['material' => $material]);
-        return $pdf->download('data-material-keluar-pdf');
+        return $pdf->download('data-material-keluar.pdf');
     }
 }

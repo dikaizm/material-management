@@ -67,8 +67,9 @@ class StokMaterialController extends Controller
                 $stokMaterialNestedData['stok'] = $stok_material->stok;
                 $stokMaterialNestedData['maksimum_stok'] = $stok_material->maksimum_stok;
                 $stokMaterialNestedData['status'] = $stok_material->status;
-                $stokMaterialNestedData['options'] = "<a href='$url'><i class='fas fa-edit fa-lg'></i></a> 
-                    <a style='border: none; background-color:transparent;' class='hapusData' data-id='$stok_material->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>";
+                $stokMaterialNestedData['options'] = "
+                    <a href='$url'><i class='fas fa-edit fa-lg'></i></a>
+                ";
                 $data_val[] = $stokMaterialNestedData;
             }
         }
@@ -114,7 +115,7 @@ class StokMaterialController extends Controller
                 'nama_material' => 'required|exists:data_materials,id',
                 'stok' => 'required|integer',
                 'maksimum_stok' => 'required|integer',
-            
+
             ]);
 
             if ($request->stok <= $request->maksimum_stok){
@@ -123,7 +124,7 @@ class StokMaterialController extends Controller
                 $status = 'Overstock';
             }
 
-            
+
             $stok_material->update([
                 'data_material_id' => $request->nama_material,
                 'stok' => $request->stok,
@@ -153,6 +154,6 @@ class StokMaterialController extends Controller
         $material = StokMaterial::with('dataMaterial')->get();
 
         $pdf = FacadePdf::loadView('page.admin.stokMaterial.stokMaterialPdf', ['material' => $material]);
-        return $pdf->download('stok-material-pdf');
+        return $pdf->download('stok-material.pdf');
     }
 }

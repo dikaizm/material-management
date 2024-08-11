@@ -141,6 +141,6 @@ class DataMaterialController extends Controller
         $material = DataMaterial::all();
 
         $pdf = FacadePdf::loadView('page.admin.dataMaterial.dataMaterialPdf', ['material' => $material]);
-        return $pdf->download('data-material-pdf');
+        return $pdf->download('data-material.pdf');
     }
 }

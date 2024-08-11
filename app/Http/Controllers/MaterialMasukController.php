@@ -101,6 +101,14 @@ class MaterialMasukController extends Controller
                 'satuan' => 'required|string|max:9999',
             ]);
 
+            if ($request->jumlah <= 0) {
+                return redirect()->route('materialMasuk.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
+            }
+
+            if ($request->satuan != 'ton') {
+                return redirect()->route('materialMasuk.add')->with('error', 'Satuan yang diinputkan harus ton');
+            }
+
             MaterialMasuk::create([
                 'waktu' => $request->waktu,
                 'data_material_id' => $request->nama_material,
@@ -152,12 +160,35 @@ class MaterialMasukController extends Controller
                 'satuan' => 'required|string|max:50',
             ]);
 
+            if ($request->jumlah <= 0) {
+                return redirect()->route('materialMasuk.add')->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
+            }
+
+            $old_stok = $material_masuk->jumlah;
             $material_masuk->update([
                 'waktu' => $request->waktu,
                 'data_material_id' => $request->nama_material,
                 'jumlah' => $request->jumlah,
                 'satuan' => $request->satuan,
             ]);
+
+            $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->first();
+            if ($stok_material) {
+                $stok = $stok_material->stok;
+                $stokBaru = $stok - $old_stok + $request->jumlah;
+                $maksimumstok = $stok_material->maksimum_stok;
+                if ($maksimumstok >= $stokBaru) {
+                    $status = 'Tidak Overstock';
+                } else {
+                    $status = 'Overstock';
+                }
+                StokMaterial::where('data_material_id', $material_masuk->data_material_id)->update([
+                    'stok' => $stokBaru,
+                    'status' => $status
+                ]);
+            } else {
+                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('status', 'Data tidak ditemukan');
+            }
 
             return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('status', 'Data telah tersimpan di database');
         }
@@ -171,6 +202,23 @@ class MaterialMasukController extends Controller
     public function hapusMaterialMasuk($id)
     {
         $material_masuk = MaterialMasuk::findOrFail($id);
+
+        $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->first();
+        if ($stok_material) {
+            $stok = $stok_material->stok;
+            $stokBaru = $stok - $material_masuk->jumlah;
+            $maksimumstok = $stok_material->maksimum_stok;
+            if ($maksimumstok >= $stokBaru) {
+                $status = 'Tidak Overstock';
+            } else {
+                $status = 'Overstock';
+            }
+            StokMaterial::where('data_material_id', $material_masuk->data_material_id)->update([
+                'stok' => $stokBaru,
+                'status' => $status
+            ]);
+        }
+
         $material_masuk->delete($id);
         return response()->json([
             'msg' => 'Data yang dipilih telah dihapus'
@@ -182,6 +230,6 @@ class MaterialMasukController extends Controller
         $material = MaterialMasuk::with('dataMaterial')->get();
 
         $pdf = FacadePdf::loadView('page.admin.materialMasuk.dataMaterialMasukPdf', ['material' => $material]);
-        return $pdf->download('data-material-Masuk-pdf');
+        return $pdf->download('data-material-Masuk.pdf');
     }
 }

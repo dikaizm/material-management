@@ -87,7 +87,7 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-12">
+            <div class="col-md-6">
                 <a href="{{ route('home') }}" class="btn btn-danger">Batal</a>
                 <input type="submit" value="Tambah Data Material" class="btn btn-success float-right">
             </div>

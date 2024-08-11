@@ -14,17 +14,17 @@
 	<center>
 		<h5>Material Keluar</h4>
 	</center>
- 
+
 	<table class='table table-bordered'>
 		<thead>
 			<tr>
 				<th>No</th>
-				<th>Waktu</th>tu;lkmnrk  5trfgt554immmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm fs 
+				<th>Waktu</th>
 				<th>Nama Material</th>
 				<th>Kode Material</th>
 				<th>Jumlah</th>
 				<th>Satuan</th>
-
+                <th>Oleh</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -37,10 +37,11 @@
 				<td>{{$item->dataMaterial->kode_material}}</td>
 				<td>{{$item->jumlah}}</td>
 				<td>{{$item->satuan}}</td>
+                <td>{{$item->user->name}}</td>
 			</tr>
 			@endforeach
 		</tbody>
 	</table>
- 
+
 </body>
 </html>

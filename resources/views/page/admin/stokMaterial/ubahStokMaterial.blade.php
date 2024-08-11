@@ -52,7 +52,7 @@
                                 id="inputNamaMaterial"
                                 name="nama_material"
                                 class="form-control @error('nama_material') is-invalid @enderror"
-                                required="required">
+                                required="required" disabled>
                                 <option value="" selected disabled>Pilih Nama Material</option>
                                 @foreach($dataMaterials as $material)
                                 <option value="{{ $material->id }}" {{ old('nama_material', $stok_material->data_material_id) == $material->id ? 'selected' : '' }}>{{ $material->nama_material }}</option>
@@ -70,7 +70,7 @@
                                 id="inputKodeMaterial"
                                 name="kode_material"
                                 class="form-control @error('kode_material') is-invalid @enderror"
-                                required="required">
+                                required="required" disabled>
                                 <option value="" selected disabled>Pilih Kode Material</option>
                                 @foreach($dataMaterials as $material)
                                 <option value="{{ $material->id }}" {{ old('kode_material', $stok_material->data_material_id) == $material->id ? 'selected' : '' }}>{{ $material->kode_material }}</option>
@@ -92,7 +92,7 @@
                                 placeholder="Masukkan Stok"
                                 value="{{ old('stok', $stok_material->stok) }}"
                                 required="required"
-                                autocomplete="stok">
+                                autocomplete="stok" disabled>
                             @error('stok')
                             <span class="invalid-feedback" role="alert">
                                 <strong>{{ $message }}</strong>
@@ -116,7 +116,7 @@
                             </span>
                             @enderror
                         </div>
-                        
+
                     </div>
                     <!-- /.card-body -->
                 </div>
@@ -124,7 +124,7 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-12">
+            <div class="col-md-6">
                 <a href="{{ route('stokMaterial.index') }}" class="btn btn-danger">Batal</a>
                 <input type="submit" value="Update Stok Material" class="btn btn-success float-right">
             </div>

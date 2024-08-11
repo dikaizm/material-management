@@ -14,13 +14,14 @@
 	<center>
 		<h5>Data Material</h4>
 	</center>
- 
+
 	<table class='table table-bordered'>
 		<thead>
 			<tr>
 				<th>No</th>
 				<th>Nama Material</th>
 				<th>Kode Material</th>
+                <th>Oleh</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -30,10 +31,11 @@
 				<td>{{ $i++ }}</td>
 				<td>{{$item->nama_material}}</td>
 				<td>{{$item->kode_material}}</td>
+                <td>{{$item->user->name}}</td>
 			</tr>
 			@endforeach
 		</tbody>
 	</table>
- 
+
 </body>
 </html>
