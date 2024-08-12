@@ -91,7 +91,7 @@
                   'section_href' => route('stokMaterial.index'),
               ],
               [
-                  'section_text' => 'Atur Stok',
+                  'section_text' => 'Atur Maksimum Stok',
                   'section_icon' => 'far fa-circle',
                   'section_href' => route('stokMaterial.edit'),
               ],
