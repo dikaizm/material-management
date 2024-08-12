@@ -67,9 +67,6 @@ class StokMaterialController extends Controller
                 $stokMaterialNestedData['stok'] = $stok_material->stok;
                 $stokMaterialNestedData['maksimum_stok'] = $stok_material->maksimum_stok;
                 $stokMaterialNestedData['status'] = $stok_material->status;
-                $stokMaterialNestedData['options'] = "
-                    <a href='$url'><i class='fas fa-edit fa-lg'></i></a>
-                ";
                 $data_val[] = $stokMaterialNestedData;
             }
         }
@@ -107,38 +104,35 @@ class StokMaterialController extends Controller
         return view('page.admin.stokMaterial.addStokMaterial', compact('dataMaterials'));
     }
 
-    public function ubahStokMaterial($id, Request $request)
+    public function ubahStokMaterial(Request $request)
     {
-        $stok_material = StokMaterial::findOrFail($id);
+        $stok_materials = StokMaterial::get();
         if ($request->isMethod('post')) {
             $this->validate($request, [
-                'nama_material' => 'required|exists:data_materials,id',
-                'stok' => 'required|integer',
                 'maksimum_stok' => 'required|integer',
-
             ]);
 
-            if ($request->stok <= $request->maksimum_stok){
-                $status = 'Tidak Overstock';
-            }else{
-                $status = 'Overstock';
+            foreach ($stok_materials as $material) {
+                if ($material->stok < $request->maksimum_stok) {
+                    $status = 'Tidak Overstock';
+                } else {
+                    $status = 'Overstock';
+                }
+
+                $material->update([
+                    'maksimum_stok' => $request->maksimum_stok,
+                    'status' => $status,
+                ]);
             }
 
+            return redirect()->route('stokMaterial.edit')->with('status', 'Data telah tersimpan di database');
+        } else if ($request->isMethod('get')) {
+            $max_stock = $stok_materials->max('maksimum_stok');
 
-            $stok_material->update([
-                'data_material_id' => $request->nama_material,
-                'stok' => $request->stok,
-                'maksimum_stok' => $request->maksimum_stok,
-                'status' => $status,
+            return view('page.admin.stokMaterial.ubahStokMaterial', [
+                'max_stock' => $max_stock,
             ]);
-
-            return redirect()->route('stokMaterial.edit', ['id' => $stok_material->id])->with('status', 'Data telah tersimpan di database');
         }
-        $dataMaterials = DataMaterial::all();
-        return view('page.admin.stokMaterial.ubahStokMaterial', [
-            'stok_material' => $stok_material,
-            'dataMaterials' => $dataMaterials,
-        ]);
     }
 
     public function hapusStokMaterial($id)
