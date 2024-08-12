@@ -110,6 +110,33 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    const horizontalLinePlugin = {
+        id: 'horizontalLine',
+        afterDraw: (chart, args, options) => {
+            const { ctx, scales, chartArea: { top, bottom } } = chart;
+            const { y } = scales;
+            const { max_stock } = chartData;
+
+            const yValue = y.getPixelForValue(max_stock);
+            ctx.save();
+            ctx.beginPath();
+            ctx.strokeStyle = 'red';
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(0, yValue);
+            ctx.lineTo(chart.width, yValue);
+            ctx.stroke();
+            ctx.restore();
+
+            // Add text
+            ctx.save();
+            ctx.fillStyle = 'red';
+            ctx.textAlign = 'center';
+            ctx.font = '12px Arial';
+            ctx.fillText('Maksimum Stok', chart.width / 2, yValue - 10);
+            ctx.restore();
+        }
+    }
+
     // Create chartjs
     const ctx = chartElement.getContext('2d');
 
@@ -203,7 +230,10 @@ document.addEventListener('DOMContentLoaded', function () {
             labels: labels,
             datasets: datasets
         },
-        plugins: [htmlLegendPlugin],
+        plugins: [
+            htmlLegendPlugin,
+            horizontalLinePlugin
+        ],
         options: {
             responsive: true,
             plugins: {
@@ -217,21 +247,17 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             scales: {
                 y: {
-                    border: {
-                        dash: function (context) {
-                            if (context.tick.value === 20) {
-                                return [6, 6];
+                    beginAtZero: true,
+                    max: function () {
+                        const max = Math.max(...datasets.map(dataset => Math.max(...dataset.data)));
+                        if (max < chartData.max_stock) {
+                            const limit = Math.ceil(chartData.max_stock / 5) * 5;
+                            if (limit == chartData.max_stock) {
+                                return limit + 5;
                             }
+                            return limit;
                         }
                     },
-                    grid: {
-                        color: function (context) {
-                            if (context.tick.value === 20) {
-                                return 'red';
-                            }
-                            return 'rgba(0, 0, 0, 0.1)';
-                        }
-                    }
                 }
             }
         },

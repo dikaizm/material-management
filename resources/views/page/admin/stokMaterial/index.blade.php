@@ -51,9 +51,6 @@
                         <th>Stok</th>
                         <th>Maksimum Stok</th>
                         <th>Status</th>
-                        @if (auth()->user()->hasRole('admin'))
-                            <th>Action</th>
-                        @endif
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -92,10 +89,7 @@
                 { "data": "kode_material" },
                 { "data": "stok" },
                 { "data": "maksimum_stok" },
-                { "data": "status" },
-                @if (auth()->user()->hasRole('admin'))
-                { "data": "options" }
-                @endif
+                { "data": "status" }
             ],
             "language": {
                 "decimal": "",

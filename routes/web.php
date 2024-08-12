@@ -34,7 +34,7 @@ Route::group(['prefix' => 'dashboard/admin'], function () {
         Route::post('update', [HomeController::class, 'updateprofile'])->name('profile.update');
     });
 
-   
+
 
     Route::controller(AkunController::class)
         ->prefix('akun')
@@ -46,7 +46,7 @@ Route::group(['prefix' => 'dashboard/admin'], function () {
             Route::match(['get','post'],'{id}/ubah', 'ubahAkun')->name('edit');
             Route::delete('{id}/hapus', 'hapusAkun')->name('delete');
         });
-    
+
     Route::controller(DataMaterialController::class)
     ->prefix('dataMaterial')
     ->as('dataMaterial.')
@@ -58,7 +58,7 @@ Route::group(['prefix' => 'dashboard/admin'], function () {
             Route::delete('{id}/hapus', 'hapusMaterial')->name('delete');
             Route::get('/pdf', 'downloadPdf')->name('downloadPdf');
         });
-    
+
     Route::controller(MaterialMasukController::class)
     ->prefix('materialMasuk')
     ->as('materialMasuk.')
@@ -69,7 +69,7 @@ Route::group(['prefix' => 'dashboard/admin'], function () {
             Route::match(['get', 'post'], '{id}/ubah', 'ubahMaterialMasuk')->name('edit');
             Route::delete('{id}/hapus', 'hapusMaterialMasuk')->name('delete');
             Route::get('/pdf', 'downloadPdf')->name('downloadPdf');
-        });    
+        });
 
     Route::prefix('materialKeluar')
     ->as('materialKeluar.')
@@ -81,7 +81,7 @@ Route::group(['prefix' => 'dashboard/admin'], function () {
         Route::delete('{id}/hapus', [MaterialKeluarController::class, 'hapusMaterialKeluar'])->name('delete');
         Route::get('/pdf', [MaterialKeluarController::class, 'downloadPdf'])->name('downloadPdf');
     });
-    
+
     Route::controller(StokMaterialController::class)
     ->prefix('stokMaterial')
     ->as('stokMaterial.')
@@ -89,7 +89,7 @@ Route::group(['prefix' => 'dashboard/admin'], function () {
             Route::get('/', 'index')->name('index');
             Route::post('showdata', 'dataTable')->name('dataTable');
             Route::match(['get', 'post'], 'tambah', 'tambahStokMaterial')->name('add');
-            Route::match(['get', 'post'], '{id}/ubah', 'ubahStokMaterial')->name('edit');
+            Route::match(['get', 'post'], 'ubah', 'ubahStokMaterial')->name('edit');
             Route::delete('{id}/hapus', 'hapusStokMaterial')->name('delete');
             Route::get('/pdf', 'downloadPdf')->name('downloadPdf');
         });

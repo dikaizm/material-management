@@ -107,14 +107,14 @@ class HomeController extends Controller
             }
         }
 
-        // dd($acc_material_in, $acc_material_out);
+        $max_stock = $material_stock->max('maksimum_stok');
 
         return view('home', [
             'chartData' => [
                 'material_in' => $mapped_material_in_data,
                 'material_out' => $mapped_material_out_data,
                 'material_stock' => $mapped_material_stock,
-                'max_stock' => 20,
+                'max_stock' => $max_stock,
                 'dates' => $dates
             ],
 

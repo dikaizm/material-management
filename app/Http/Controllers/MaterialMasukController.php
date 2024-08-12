@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DataMaterial;
+use App\Models\MaterialKeluar;
 use App\Models\MaterialMasuk;
 use App\Models\StokMaterial;
 use Illuminate\Http\Request;
@@ -214,6 +215,25 @@ class MaterialMasukController extends Controller
 
         $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->first();
         if ($stok_material) {
+            // Check if there is material keluar where date is less than material masuk
+            $material_keluars = MaterialKeluar::where('data_material_id', $material_masuk->data_material_id)
+                ->where('waktu', '<=', $material_masuk->waktu)
+                ->get();
+
+            // Count the total material keluar
+            $totalMaterialKeluar = 0;
+            foreach ($material_keluars as $material_keluar) {
+                $totalMaterialKeluar += $material_keluar->jumlah;
+            }
+
+            // Check if the total material keluar is greater than material masuk
+            if ($totalMaterialKeluar > $material_masuk->jumlah) {
+                // 400 Bad Request
+                return response()->json([
+                    'msg' => "Jumlah material keluar lebih besar dari material masuk, hapus material keluar terlebih dahulu",
+                ], 400);
+            }
+
             $stok = $stok_material->stok;
             $stokBaru = $stok - $material_masuk->jumlah;
             if ($stokBaru < 0) {
