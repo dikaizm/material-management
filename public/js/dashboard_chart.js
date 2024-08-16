@@ -53,6 +53,9 @@ function getValuesToArrayStock(labels, obj, key, prevStock) {
         prevValue = prevStock[key];
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     return labels.map(date => {
         // Format date to have leading zero if necessary
         if (date < 10) {
@@ -64,7 +67,14 @@ function getValuesToArrayStock(labels, obj, key, prevStock) {
 
         // Construct the formatted date string
         const formattedDate = `${chartData.year}-${chartData.month}-${date}`;
-        // console.log(formattedDate);
+
+        // Create a Date object for comparison
+        const currentDate = new Date(`${formattedDate}T00:00:00`);
+
+        // Check if the current date exceeds today's date
+        if (currentDate > today) {
+            return 0;
+        }
 
         // Retrieve the value from the object based on the formatted date
         const value = obj[formattedDate];
