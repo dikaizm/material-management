@@ -35,11 +35,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function getDatesInMonth(year, month) {
     const dateNumbers = [];
-    const date = new Date(year, month, 1); // Start from the first day of the month
+    // Subtract 1 from the month to account for zero-indexing
+    const date = new Date(year, month - 1, 1);
 
-    while (date.getMonth() === month) {
-        dateNumbers.push(date.getDate()); // Push the current date number to the array
-        date.setDate(date.getDate() + 1); // Move to the next day
+    // Use getMonth() + 1 to compare with the input month
+    while (date.getMonth() + 1 === month) {
+        dateNumbers.push(date.getDate());
+        date.setDate(date.getDate() + 1);
     }
 
     return dateNumbers;

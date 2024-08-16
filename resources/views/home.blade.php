@@ -37,26 +37,37 @@
 
               <div class="d-flex justify-content-end" style="gap: 0.5rem;">
                 <select id="chart_year" class="form-control" style="width: fit-content;">
-                  <option value="2024" selected>2024</option>
-                  <option value="2023">2023</option>
-                  <option value="2022">2022</option>
-                  <option value="2021">2021</option>
-                  <option value="2020">2020</option>
+                  <?php
+                  $currentYear = date('Y');
+                  for ($year = $currentYear; $year >= 2020; $year--) {
+                      $selected = $year == $currentYear ? 'selected' : '';
+                      echo "<option value=\"$year\" $selected>$year</option>";
+                  }
+                  ?>
                 </select>
 
                 <select id="chart_month" class="form-control" style="width: fit-content;">
-                  <option value="1">Januari</option>
-                  <option value="2">Februari</option>
-                  <option value="3">Maret</option>
-                  <option value="4">April</option>
-                  <option value="5">Mei</option>
-                  <option value="6">Juni</option>
-                  <option value="7">Juli</option>
-                  <option value="8" selected>Agustus</option>
-                  <option value="9">September</option>
-                  <option value="10">Oktober</option>
-                  <option value="11">November</option>
-                  <option value="12">Desember</option>
+                  <?php
+                  $months = [
+                      1 => 'Januari',
+                      2 => 'Februari',
+                      3 => 'Maret',
+                      4 => 'April',
+                      5 => 'Mei',
+                      6 => 'Juni',
+                      7 => 'Juli',
+                      8 => 'Agustus',
+                      9 => 'September',
+                      10 => 'Oktober',
+                      11 => 'November',
+                      12 => 'Desember',
+                  ];
+                  $currentMonth = date('n');
+                  foreach ($months as $number => $name) {
+                      $selected = $number == $currentMonth ? 'selected' : '';
+                      echo "<option value=\"$number\" $selected>$name</option>";
+                  }
+                  ?>
                 </select>
               </div>
             </div>

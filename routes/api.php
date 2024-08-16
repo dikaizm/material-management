@@ -44,8 +44,12 @@ Route::get('/chart-data', function (Request $request) {
     $material_ins = MaterialMasuk::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
     $material_outs = MaterialKeluar::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
     $material_stock_records = StokMaterialRecord::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
-    $prev_month_record = StokMaterialRecord::whereMonth('waktu', $current_month - 1)
-        ->whereYear('waktu', $current_year)
+
+    $prev_month = $current_month == 1 ? 12 : $current_month - 1;
+    $prev_year = $current_month == 1 ? $current_year - 1 : $current_year;
+
+    $prev_month_record = StokMaterialRecord::whereMonth('waktu', $prev_month)
+        ->whereYear('waktu', $prev_year)
         ->orderBy('waktu', 'desc')
         ->get()
         ->groupBy('data_material_id')
