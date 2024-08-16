@@ -30,7 +30,24 @@ class MaterialKeluarController extends Controller
             5 => 'created_by',
         );
 
-        $totalDataRecord = MaterialKeluar::count();
+        $query = MaterialKeluar::query();
+
+        if ($request->has('start_date') && $request->has('end_date')) {
+            $start_date = $request->input('start_date');
+            $end_date = $request->input('end_date');
+
+            if ($start_date > $end_date) {
+                return response()->json([
+                    'msg' => 'Tanggal awal tidak boleh lebih besar dari tanggal akhir',
+                ], 400);
+            }
+
+            if (!empty($start_date) && !empty($end_date)) {
+                $query->whereBetween('waktu', [$start_date, $end_date]);
+            }
+        }
+
+        $totalDataRecord = $query->count();
         $totalFilteredRecord = $totalDataRecord;
 
         $limit_val = $request->input('length');
@@ -39,14 +56,14 @@ class MaterialKeluarController extends Controller
         $dir_val = $request->input('order.0.dir');
 
         if (empty($request->input('search.value'))) {
-            $material_keluar_data = MaterialKeluar::offset($start_val)
+            $material_keluar_data = $query->offset($start_val)
                 ->limit($limit_val)
                 ->orderBy($order_val, $dir_val)
                 ->get();
         } else {
             $search_text = $request->input('search.value');
 
-            $material_keluar_data = MaterialKeluar::where('waktu', 'LIKE', "%{$search_text}%")
+            $material_keluar_data = $query->where('waktu', 'LIKE', "%{$search_text}%")
                 ->orWhereHas('dataMaterial', function ($query) use ($search_text) {
                     $query->where('nama_material', 'LIKE', "%{$search_text}%")
                         ->orWhere('kode_material', 'LIKE', "%{$search_text}%");
@@ -56,7 +73,7 @@ class MaterialKeluarController extends Controller
                 ->orderBy($order_val, $dir_val)
                 ->get();
 
-            $totalFilteredRecord = MaterialKeluar::where('waktu', 'LIKE', "%{$search_text}%")
+            $totalFilteredRecord = $query->where('waktu', 'LIKE', "%{$search_text}%")
                 ->orWhereHas('dataMaterial', function ($query) use ($search_text) {
                     $query->where('nama_material', 'LIKE', "%{$search_text}%")
                         ->orWhere('kode_material', 'LIKE', "%{$search_text}%");

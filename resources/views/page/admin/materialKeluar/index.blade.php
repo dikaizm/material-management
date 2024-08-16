@@ -41,7 +41,25 @@
             </div>
         </div>
         <div class="card-body p-0" style="margin: 20px">
-            <a href="materialKeluar/pdf" class="btn btn-success" style="margin-bottom: 20px">Download PDF</a>
+            <div style="display: flex; justify-content: space-between; align-items: end; width: 100%; margin-bottom: 20px;">
+                <div class="d-flex" style="gap: 0.5rem;">
+                    <div class="w-100">
+                        <label for="start_date">Start Date:</label>
+                        <input type="date" id="start_date" class="form-control">
+                    </div>
+                    <div class="w-100">
+                        <label for="end_date">End Date:</label>
+                        <input type="date" id="end_date" class="form-control">
+                    </div>
+                    <div class="d-flex align-items-end" style="gap: 0.5rem;">
+                        <button id="filter_button" class="btn btn-primary">Filter</button>
+                        <button id="filter_reset_button" class="btn btn-light">Reset</button>
+                    </div>
+                </div>
+
+                <a href="materialKeluar/pdf" class="btn btn-success" style="height: fit-content;">Download PDF</a>
+            </div>
+
             <table id="previewMaterialKeluar" class="table table-striped table-bordered display" style="width:100%">
                 <thead>
                     <tr>
@@ -79,8 +97,10 @@
                 "url": "{{ route('materialKeluar.dataTable') }}",
                 "dataType": "json",
                 "type": "POST",
-                "data": {
-                    _token: "{{ csrf_token() }}"
+                "data": function (d) {
+                    d._token = "{{ csrf_token() }}";
+                    d.start_date = $('#start_date').val();
+                    d.end_date = $('#end_date').val();
                 }
             },
             "columns": [
@@ -161,6 +181,17 @@
                     });
                 }
             })
+        });
+
+          // Add event listener for the filter button
+          $('#filter_button').on('click', function() {
+            t.ajax.reload();
+        });
+
+        $('#filter_reset_button').on('click', function() {
+            $('#start_date').val('');
+            $('#end_date').val('');
+            t.ajax.reload();
         });
     });
 </script>
