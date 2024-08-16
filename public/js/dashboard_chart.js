@@ -2,7 +2,7 @@ let chart;
 
 document.addEventListener('DOMContentLoaded', function () {
     const chartData = window.chartData;
-    console.log(chartData);
+    // console.log(chartData);
     if (!window.chartData) {
         console.error('chartData is not defined');
         return;
@@ -45,7 +45,7 @@ function getDatesInMonth(year, month) {
     return dateNumbers;
 }
 
-function getValuesToArray(labels, obj, key, prevStock) {
+function getValuesToArrayStock(labels, obj, key, prevStock) {
     let prevValue = null;
     if (prevStock && prevStock[key]) {
         prevValue = prevStock[key];
@@ -79,7 +79,25 @@ function getValuesToArray(labels, obj, key, prevStock) {
     });
 }
 
+function getValuesToArray(labels, obj, key) {
+    return labels.map(date => {
+        if (date < 10) {
+            date = `0${date}`;
+        }
+        if (chartData.month.length < 2) {
+            chartData.month = `0${chartData.month}`;
+        }
 
+        const formattedDate = `${chartData.year}-${chartData.month}-${date}`;
+        // console.log(formattedDate);
+
+        const value = obj[formattedDate];
+        if (value && value[key]) {
+            return value[key];
+        }
+        return 0;
+    });
+}
 
 function updateChart(chartData) {
     const labels = getDatesInMonth(parseInt(chartData.year), parseInt(chartData.month));
@@ -89,13 +107,13 @@ function updateChart(chartData) {
     chart.data.datasets.forEach((dataset) => {
         if (dataset.label.includes('Stok')) {
             const material = dataset.label.split(' ')[0];
-            dataset.data = getValuesToArray(labels, chartData.material_stock, material, chartData.prev_stock);
+            dataset.data = getValuesToArrayStock(labels, chartData.material_stock, material, chartData.prev_stock);
         } else if (dataset.label.includes('Masuk')) {
             const material = dataset.label.split(' ')[0];
-            dataset.data = getValuesToArray(labels, chartData.material_ins, material, chartData.prev_stock);
+            dataset.data = getValuesToArray(labels, chartData.material_ins, material);
         } else if (dataset.label.includes('Keluar')) {
             const material = dataset.label.split(' ')[0];
-            dataset.data = getValuesToArray(labels, chartData.material_outs, material, chartData.prev_stock);
+            dataset.data = getValuesToArray(labels, chartData.material_outs, material);
         }
     });
 
@@ -282,19 +300,19 @@ function createChart(chartData) {
         // Bar Charts
         {
             label: 'HDPE Stok',
-            data: getValuesToArray(labels, chartData.material_stock, 'HDPE', chartData.prev_stock),
+            data: getValuesToArrayStock(labels, chartData.material_stock, 'HDPE', chartData.prev_stock),
             backgroundColor: 'rgba(236, 132, 15, 0.8)',
             order: 10
         },
         {
             label: 'LDPE Stok',
-            data: getValuesToArray(labels, chartData.material_stock, 'LDPE', chartData.prev_stock),
+            data: getValuesToArrayStock(labels, chartData.material_stock, 'LDPE', chartData.prev_stock),
             backgroundColor: 'rgba(25, 148, 239, 0.8)',
             order: 11
         },
         {
             label: 'LLDPE Stok',
-            data: getValuesToArray(labels, chartData.material_stock, 'LLDPE', chartData.prev_stock),
+            data: getValuesToArrayStock(labels, chartData.material_stock, 'LLDPE', chartData.prev_stock),
             backgroundColor: 'rgba(25, 200, 82, 0.8)',
             order: 12
         },
@@ -303,7 +321,7 @@ function createChart(chartData) {
     const lineChartData = [
         {
             label: 'HDPE Masuk',
-            data: getValuesToArray(labels, chartData.material_ins, 'HDPE', chartData.prev_stock),
+            data: getValuesToArray(labels, chartData.material_ins, 'HDPE'),
             borderColor: 'rgba(226, 90, 13, 0.8)',
             backgroundColor: 'rgba(226, 90, 13, 0.8)',
             type: 'line',
@@ -311,7 +329,7 @@ function createChart(chartData) {
         },
         {
             label: 'HDPE Keluar',
-            data: getValuesToArray(labels, chartData.material_outs, 'HDPE', chartData.prev_stock),
+            data: getValuesToArray(labels, chartData.material_outs, 'HDPE'),
             borderColor: 'rgba(226, 90, 13, 0.8)',
             backgroundColor: 'rgba(226, 90, 13, 0.8)',
             type: 'line',
@@ -321,7 +339,7 @@ function createChart(chartData) {
         },
         {
             label: 'LDPE Masuk',
-            data: getValuesToArray(labels, chartData.material_ins, 'LDPE', chartData.prev_stock),
+            data: getValuesToArray(labels, chartData.material_ins, 'LDPE'),
             borderColor: 'rgba(13, 98, 221, 0.8)',
             backgroundColor: 'rgba(13, 98, 221, 0.8)',
             type: 'line',
@@ -329,7 +347,7 @@ function createChart(chartData) {
         },
         {
             label: 'LDPE Keluar',
-            data: getValuesToArray(labels, chartData.material_outs, 'LDPE', chartData.prev_stock),
+            data: getValuesToArray(labels, chartData.material_outs, 'LDPE'),
             borderColor: 'rgba(13, 98, 221, 0.8)',
             backgroundColor: 'rgba(13, 98, 221, 0.8)',
             type: 'line',
@@ -339,7 +357,7 @@ function createChart(chartData) {
         },
         {
             label: 'LLDPE Masuk',
-            data: getValuesToArray(labels, chartData.material_ins, 'LLDPE', chartData.prev_stock),
+            data: getValuesToArray(labels, chartData.material_ins, 'LLDPE'),
             borderColor: 'rgba(22, 176, 100, 0.8)',
             backgroundColor: 'rgba(22, 176, 100, 0.8)',
             type: 'line',
@@ -347,7 +365,7 @@ function createChart(chartData) {
         },
         {
             label: 'LLDPE Keluar',
-            data: getValuesToArray(labels, chartData.material_outs, 'LLDPE', chartData.prev_stock),
+            data: getValuesToArray(labels, chartData.material_outs, 'LLDPE'),
             borderColor: 'rgba(22, 176, 100, 0.8)',
             backgroundColor: 'rgba(22, 176, 100, 0.8)',
             type: 'line',

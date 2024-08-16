@@ -143,11 +143,8 @@ class MaterialMasukController extends Controller
             $record = StokMaterialRecord::where('waktu', $request->waktu)
                 ->where('data_material_id', $request->nama_material)->orderBy('created_at', 'desc')->first();
             if ($record) {
-                $record = StokMaterialRecord::create([
-                    'data_material_id' => $request->nama_material,
-                    'stok' => $record->stok + $request->jumlah,
-                    'waktu' => $request->waktu,
-                    'created_by' => auth()->user()->id,
+                $record->update([
+                    'stok' => $record->stok + $request->jumlah
                 ]);
             } else {
                 $last_record_before = StokMaterialRecord::where('waktu', '<', $request->waktu)
@@ -301,12 +298,12 @@ class MaterialMasukController extends Controller
         $record = StokMaterialRecord::where('id', $material_masuk->record_id)->first();
         if ($record) {
             $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
-                ->where('id', $material_masuk->record_id)
+                ->where('data_material_id', $material_masuk->data_material_id)
                 ->get();
             if ($records) {
                 foreach ($records as $r) {
                     $r->update([
-                        'stok' => $r->stok - $record->stok
+                        'stok' => $r->stok - $material_masuk->jumlah,
                     ]);
                 }
             }

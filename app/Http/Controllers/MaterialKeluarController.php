@@ -300,22 +300,22 @@ class MaterialKeluarController extends Controller
     {
         $material_keluar = MaterialKeluar::findOrFail($id);
 
-          // Delete stok record
-          $record = StokMaterialRecord::where('id', $material_keluar->record_id)->first();
-          if ($record) {
-              $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
-                  ->where('id', $material_keluar->record_id)
-                  ->get();
-              if ($records) {
-                  foreach ($records as $r) {
-                      $r->update([
-                          'stok' => $r->stok - $record->stok
-                      ]);
-                  }
-              }
+        // Delete stok record
+        $record = StokMaterialRecord::where('id', $material_keluar->record_id)->first();
+        if ($record) {
+            $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
+                ->where('data_material_id', $material_keluar->data_material_id)
+                ->get();
+            if ($records) {
+                foreach ($records as $r) {
+                    $r->update([
+                        'stok' => $r->stok + $material_keluar->jumlah,
+                    ]);
+                }
+            }
 
-              $record->delete();
-          }
+            $record->delete();
+        }
 
         $stok_material = StokMaterial::where('data_material_id', $material_keluar->data_material_id)->first();
         if ($stok_material) {
