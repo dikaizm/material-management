@@ -38,11 +38,30 @@ class HomeController extends Controller
         $current_month = Carbon::now($timezone)->format('m');
         $current_year = Carbon::now($timezone)->format('Y');
 
-        $material_codes = DataMaterial::pluck('kode_material');
+        $material_codes = DataMaterial::pluck('kode_material', 'id');
 
         $material_ins = MaterialMasuk::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
         $material_outs = MaterialKeluar::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
         $material_stock_records = StokMaterialRecord::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
+        $prev_month_record = StokMaterialRecord::whereMonth('waktu', $current_month - 1)
+            ->whereYear('waktu', $current_year)
+            ->orderBy('waktu', 'desc')
+            ->get()
+            ->groupBy('data_material_id')
+            ->map(function ($group) {
+                return $group->first();
+            });
+
+        $prev_stock = [];
+
+        if ($prev_month_record->isNotEmpty()) {
+            foreach ($prev_month_record as $material_id => $rec) {
+                $mat_code = $material_codes->get($material_id);
+                if ($mat_code) {
+                    $prev_stock[$mat_code] = $rec->stok;
+                }
+            }
+        }
 
         // Date as key
         $mapped_material_in_data = [];
@@ -108,7 +127,8 @@ class HomeController extends Controller
                 'max_stock' => $max_stock,
                 'material_codes' => $material_codes,
                 'year' => $current_year,
-                'month' => $current_month
+                'month' => $current_month,
+                'prev_stock' => $prev_stock,
             ],
 
             'totalMaterial' => DataMaterial::all()->count(),
