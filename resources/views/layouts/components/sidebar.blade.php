@@ -2,7 +2,7 @@
   $links = [
       [
           'href' => route('home'),
-          'text' => 'Dasboard',
+          'text' => 'Dashboard',
           'icon' => 'fas fa-home',
           'admin_only' => false,
           'is_multi' => false,
