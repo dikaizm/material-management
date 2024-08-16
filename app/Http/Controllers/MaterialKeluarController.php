@@ -6,6 +6,7 @@ use App\Models\DataMaterial;
 use App\Models\MaterialKeluar;
 use App\Models\MaterialMasuk;
 use App\Models\StokMaterial;
+use App\Models\StokMaterialRecord;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
 use Carbon\Carbon;
@@ -130,12 +131,41 @@ class MaterialKeluarController extends Controller
 
             $stok = $stok_material->stok;
             if ($stok >= $request->jumlah) {
+                // get record with waktu and data_material_id
+                $record = StokMaterialRecord::where('waktu', $request->waktu)->where('data_material_id', $request->nama_material)->orderBy('created_at', 'desc')->first();
+                if ($record) {
+                    $record->update([
+                        'stok' => $record->stok - $request->jumlah
+                    ]);
+                } else {
+                    $last_record_before = StokMaterialRecord::where('waktu', '<', $request->waktu)
+                        ->where('data_material_id', $request->nama_material)->orderBy('waktu', 'desc')->first();
+
+                    $record = StokMaterialRecord::create([
+                        'waktu' => $request->waktu,
+                        'data_material_id' => $request->nama_material,
+                        'stok' => $last_record_before->stok - $request->jumlah,
+                        'created_by' => auth()->user()->id
+                    ]);
+                }
+
+                // get all records where waktu is greater than current record
+                $records = StokMaterialRecord::where('waktu', '>', $request->waktu)->where('data_material_id', $request->nama_material)->get();
+                if ($records) {
+                    foreach ($records as $r) {
+                        $r->update([
+                            'stok' => $r->stok - $request->jumlah
+                        ]);
+                    }
+                }
+
                 MaterialKeluar::create([
                     'waktu' => $request->waktu,
                     'data_material_id' => $request->nama_material,
                     'jumlah' => $request->jumlah,
                     'satuan' => strtolower($request->satuan),
                     'created_by' => auth()->user()->id,
+                    'record_id' => $record->id
                 ]);
 
                 $stokBaru = $stok - $request->jumlah;

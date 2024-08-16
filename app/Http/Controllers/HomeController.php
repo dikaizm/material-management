@@ -6,6 +6,7 @@ use App\Models\DataMaterial;
 use App\Models\MaterialKeluar;
 use App\Models\MaterialMasuk;
 use App\Models\StokMaterial;
+use App\Models\StokMaterialRecord;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -33,89 +34,81 @@ class HomeController extends Controller
     public function index()
     {
         $timezone = 'Asia/Jakarta';
-        $current_date = Carbon::now($timezone);
-        $min_date = Carbon::now($timezone)->subDays(6);
 
-        // Generate dates for the last 6 days in array
-        $dates = [];
-        for ($i = 0; $i < 6; $i++) {
-            $dates[] = Carbon::now($timezone)->subDays($i)->format('d-m-Y');
-        }
+        $current_month = Carbon::now($timezone)->format('m');
+        $current_year = Carbon::now($timezone)->format('Y');
 
         $material_codes = DataMaterial::pluck('kode_material');
 
-        $material_in_data = MaterialMasuk::whereBetween('waktu', [$min_date, $current_date])->get()->groupBy(function ($date) {
-            return Carbon::parse($date->waktu)->format('d-m-Y');
-        });
-        $material_out_data = MaterialKeluar::whereBetween('waktu', [$min_date, $current_date])->get()->groupBy(function ($date) {
-            return Carbon::parse($date->waktu)->format('d-m-Y');
-        });
+        $material_ins = MaterialMasuk::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
+        $material_outs = MaterialKeluar::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
+        $material_stock_records = StokMaterialRecord::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
 
-        $material_stock = StokMaterial::get();
-
+        // Date as key
         $mapped_material_in_data = [];
         $mapped_material_out_data = [];
-        $mapped_material_stock = [];
+        $mapped_material_stock_data = [];
 
-        $acc_material_in = [];
-        $acc_material_out = [];
+        foreach ($material_ins as $material_in) {
+            $date = Carbon::parse($material_in->waktu)->format('Y-m-d');
+            $material_code = $material_in->dataMaterial()->first()->kode_material;
 
-        foreach ($dates as $date) {
-            $mapped_material_in_data[$date] = [];
-            $mapped_material_out_data[$date] = [];
-            $mapped_material_stock[$date] = [];
-
-            $material_in_sum = 0;
-            $material_out_sum = 0;
-
-            foreach ($material_codes as $material_code) {
-                $material_in_sum = $material_in_data->get($date, collect())
-                    ->where('dataMaterial.kode_material', $material_code)
-                    ->sum('jumlah');
-
-                $material_out_sum = $material_out_data->get($date, collect())
-                    ->where('dataMaterial.kode_material', $material_code)
-                    ->sum('jumlah');
-
-                $material_stock_find = $material_stock->where('dataMaterial.kode_material', $material_code)->first();
-                if ($material_stock_find) {
-                    $material_stock_amount = $material_stock_find->stok;
-                } else {
-                    $material_stock_amount = 0;
-                }
-
-                if ($date == $current_date->format('d-m-Y')) {
-                    $mapped_material_stock[$date][$material_code] = $material_stock_amount;
-                } else {
-                    $mapped_material_stock[$date][$material_code] = $material_stock_amount - ($acc_material_in[$material_code] - $acc_material_out[$material_code]);
-                }
-
-                if (!isset($acc_material_in[$material_code])) {
-                    $acc_material_in[$material_code] = $material_in_sum;
-                } else {
-                    $acc_material_in[$material_code] += $material_in_sum;
-                }
-
-                if (!isset($acc_material_out[$material_code])) {
-                    $acc_material_out[$material_code] = $material_out_sum;
-                } else {
-                    $acc_material_out[$material_code] += $material_out_sum;
-                }
-
-                $mapped_material_in_data[$date][$material_code] = $material_in_sum;
-                $mapped_material_out_data[$date][$material_code] = $material_out_sum;
+            if (!isset($mapped_material_in_data[$date])) {
+                $mapped_material_in_data[$date] = [];
             }
+
+            if (!isset($mapped_material_in_data[$date][$material_code])) {
+                $mapped_material_in_data[$date][$material_code] = 0;
+            }
+
+            $mapped_material_in_data[$date][$material_code] += $material_in->jumlah;
         }
 
+        foreach ($material_outs as $material_out) {
+            $date = Carbon::parse($material_out->waktu)->format('Y-m-d');
+            $material_code = $material_out->dataMaterial()->first()->kode_material;
+
+            if (!isset($mapped_material_out_data[$date])) {
+                $mapped_material_out_data[$date] = [];
+            }
+
+            if (!isset($mapped_material_out_data[$date][$material_code])) {
+                $mapped_material_out_data[$date][$material_code] = 0;
+            }
+
+            $mapped_material_out_data[$date][$material_code] += $material_out->jumlah;
+        }
+
+        foreach ($material_stock_records as $material_stock_record) {
+            $date = Carbon::parse($material_stock_record->waktu)->format('Y-m-d');
+            $material_code = $material_stock_record->dataMaterial()->first()->kode_material;
+
+            if (!isset($mapped_material_stock_data[$date])) {
+                $mapped_material_stock_data[$date] = [];
+            }
+
+            if (!isset($mapped_material_stock_data[$date][$material_code])) {
+                $mapped_material_stock_data[$date][$material_code] = 0;
+            }
+
+            $mapped_material_stock_data[$date][$material_code] += $material_stock_record->stok;
+        }
+
+        // dd($mapped_material_in_data, $mapped_material_out_data, $mapped_material_stock_data);
+
+        // get stok material
+        $material_stock = StokMaterial::get();
         $max_stock = $material_stock->max('maksimum_stok');
 
         return view('home', [
             'chartData' => [
-                'material_in' => $mapped_material_in_data,
-                'material_out' => $mapped_material_out_data,
-                'material_stock' => $mapped_material_stock,
+                'material_ins' => $mapped_material_in_data,
+                'material_outs' => $mapped_material_out_data,
+                'material_stock' => $mapped_material_stock_data,
                 'max_stock' => $max_stock,
-                'dates' => $dates
+                'material_codes' => $material_codes,
+                'year' => $current_year,
+                'month' => $current_month
             ],
 
             'totalMaterial' => DataMaterial::all()->count(),

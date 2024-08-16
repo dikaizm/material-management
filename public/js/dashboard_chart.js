@@ -1,9 +1,118 @@
+let chart;
+
 document.addEventListener('DOMContentLoaded', function () {
     const chartData = window.chartData;
+    // console.log(chartData);
     if (!window.chartData) {
         console.error('chartData is not defined');
         return;
     }
+
+    // Ensure selected year and month element exists
+    const chartYearElement = document.getElementById('chart_year');
+    const chartMonthElement = document.getElementById('chart_month');
+    if (!chartYearElement || !chartMonthElement) {
+        console.error('Element with id "chart_year" or "chart_month" not found');
+        return;
+    }
+
+    // Add event listener to year and month element
+    chartYearElement.addEventListener('change', async function () {
+        const year = this.value;
+        const month = chartMonthElement.value;
+        await updateChartData(year, month);
+    });
+
+    chartMonthElement.addEventListener('change', async function () {
+        const year = chartYearElement.value;
+        const month = this.value;
+        await updateChartData(year, month);
+    })
+
+    chart = createChart(chartData);
+});
+
+
+function getDatesInMonth(year, month) {
+    const dateNumbers = [];
+    const date = new Date(year, month, 1); // Start from the first day of the month
+
+    while (date.getMonth() === month) {
+        dateNumbers.push(date.getDate()); // Push the current date number to the array
+        date.setDate(date.getDate() + 1); // Move to the next day
+    }
+
+    return dateNumbers;
+}
+
+function getValuesToArray(labels, obj, key) {
+    return labels.map(date => {
+        if (date < 10) {
+            date = `0${date}`;
+        }
+        if (chartData.month.length < 2) {
+            chartData.month = `0${chartData.month}`;
+        }
+
+        const formattedDate = `${chartData.year}-${chartData.month}-${date}`;
+        // console.log(formattedDate);
+
+        const value = obj[formattedDate];
+        if (value && value[key]) {
+            return value[key];
+        }
+        return 0;
+    });
+}
+
+
+function updateChart(chartData) {
+    const labels = getDatesInMonth(parseInt(chartData.year), parseInt(chartData.month));
+
+    chart.data.labels = labels;
+
+    chart.data.datasets.forEach((dataset) => {
+        if (dataset.label.includes('Stok')) {
+            const material = dataset.label.split(' ')[0];
+            dataset.data = getValuesToArray(labels, chartData.material_stock, material);
+        } else if (dataset.label.includes('Masuk')) {
+            const material = dataset.label.split(' ')[0];
+            dataset.data = getValuesToArray(labels, chartData.material_ins, material);
+        } else if (dataset.label.includes('Keluar')) {
+            const material = dataset.label.split(' ')[0];
+            dataset.data = getValuesToArray(labels, chartData.material_outs, material);
+        }
+    });
+
+    chart.update();
+}
+
+
+async function updateChartData(year, month) {
+    const response = await fetch(`/api/chart-data?year=${year}&month=${month}`, {
+        method: 'GET',
+    });
+
+    if (!response.ok) {
+        console.error('Failed to fetch data');
+        return;
+    }
+
+    const data = await response.json();
+    console.log(data);
+
+    chartData.year = year;
+    chartData.month = month;
+    chartData.material_ins = data.material_ins;
+    chartData.material_outs = data.material_outs;
+    chartData.material_stock = data.material_stock;
+
+    updateChart(chartData);
+}
+
+
+function createChart(chartData) {
+    console.log(chartData)
 
     // Ensure that the element with id 'chart_material' exists
     const chartElement = document.getElementById('chart_material');
@@ -77,19 +186,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 };
 
                 // Color box
-                const boxSpan = document.createElement('span');
-                boxSpan.style.background = item.fillStyle;
-                boxSpan.style.borderColor = item.strokeStyle;
-                boxSpan.style.borderWidth = item.lineWidth + 'px';
-                boxSpan.style.display = 'inline-block';
-                boxSpan.style.flexShrink = 0;
+                const boxDiv = document.createElement('div');
+
+                boxDiv.style.background = item.fillStyle;
+                boxDiv.style.borderColor = item.strokeStyle;
+                boxDiv.style.borderWidth = item.lineWidth + 'px';
+                boxDiv.style.display = 'inline-block';
+                boxDiv.style.flexShrink = 0;
 
                 const isKeluar = item.text.includes('Keluar');
                 const isMasuk = item.text.includes('Masuk');
-                boxSpan.style.height = isKeluar ? '8px' : isMasuk ? '4px' : '20px';
 
-                boxSpan.style.marginRight = '10px';
-                boxSpan.style.width = '40px';
+                if (isKeluar || isMasuk) {
+                    if (isKeluar) {
+                        boxDiv.style.background = 'transparent';
+                        boxDiv.style.borderTopWidth = item.lineWidth + 'px';
+                        boxDiv.style.borderTopStyle = 'dotted';
+                        boxDiv.style.borderTopColor = item.strokeStyle;
+                    }
+                    boxDiv.style.height = '4px';
+                } else {
+                    boxDiv.style.height = '20px';
+                }
+
+                boxDiv.style.marginRight = '10px';
+                boxDiv.style.width = '40px';
 
                 // Text
                 const textContainer = document.createElement('p');
@@ -103,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const text = document.createTextNode(item.text);
                 textContainer.appendChild(text);
 
-                li.appendChild(boxSpan);
+                li.appendChild(boxDiv);
                 li.appendChild(textContainer);
                 ul.appendChild(li);
             });
@@ -121,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ctx.save();
             ctx.beginPath();
             ctx.strokeStyle = 'red';
-            ctx.setLineDash([5, 5]);
+            ctx.setLineDash([10, 6]);
             ctx.moveTo(0, yValue);
             ctx.lineTo(chart.width, yValue);
             ctx.stroke();
@@ -140,29 +261,27 @@ document.addEventListener('DOMContentLoaded', function () {
     // Create chartjs
     const ctx = chartElement.getContext('2d');
 
-    const labels = chartData.dates.reverse();
+    const labels = getDatesInMonth(parseInt(chartData.year), parseInt(chartData.month));
 
-    function getValuesToArray(obj, key) {
-        return Object.values(obj).map(item => item[key]).reverse() || [];
-    }
+    // console.log(getValuesToArray(chartData.material_ins, 'HDPE'));
 
     const barChartData = [
         // Bar Charts
         {
             label: 'HDPE Stok',
-            data: getValuesToArray(chartData.material_stock, 'HDPE'),
+            data: getValuesToArray(labels, chartData.material_stock, 'HDPE'),
             backgroundColor: 'rgba(236, 132, 15, 0.8)',
             order: 10
         },
         {
             label: 'LDPE Stok',
-            data: getValuesToArray(chartData.material_stock, 'LDPE'),
+            data: getValuesToArray(labels, chartData.material_stock, 'LDPE'),
             backgroundColor: 'rgba(25, 148, 239, 0.8)',
             order: 11
         },
         {
             label: 'LLDPE Stok',
-            data: getValuesToArray(chartData.material_stock, 'LLDPE'),
+            data: getValuesToArray(labels, chartData.material_stock, 'LLDPE'),
             backgroundColor: 'rgba(25, 200, 82, 0.8)',
             order: 12
         },
@@ -171,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const lineChartData = [
         {
             label: 'HDPE Masuk',
-            data: getValuesToArray(chartData.material_in, 'HDPE'),
+            data: getValuesToArray(labels, chartData.material_ins, 'HDPE'),
             borderColor: 'rgba(226, 90, 13, 0.8)',
             backgroundColor: 'rgba(226, 90, 13, 0.8)',
             type: 'line',
@@ -179,16 +298,17 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         {
             label: 'HDPE Keluar',
-            data: getValuesToArray(chartData.material_out, 'HDPE'),
+            data: getValuesToArray(labels, chartData.material_outs, 'HDPE'),
             borderColor: 'rgba(226, 90, 13, 0.8)',
             backgroundColor: 'rgba(226, 90, 13, 0.8)',
             type: 'line',
-            borderWidth: 6,
+            borderDash: [0, 6],
+            borderCapStyle: 'round',
             order: 5
         },
         {
             label: 'LDPE Masuk',
-            data: getValuesToArray(chartData.material_in, 'LDPE'),
+            data: getValuesToArray(labels, chartData.material_ins, 'LDPE'),
             borderColor: 'rgba(13, 98, 221, 0.8)',
             backgroundColor: 'rgba(13, 98, 221, 0.8)',
             type: 'line',
@@ -196,16 +316,17 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         {
             label: 'LDPE Keluar',
-            data: getValuesToArray(chartData.material_out, 'LDPE'),
+            data: getValuesToArray(labels, chartData.material_outs, 'LDPE'),
             borderColor: 'rgba(13, 98, 221, 0.8)',
             backgroundColor: 'rgba(13, 98, 221, 0.8)',
             type: 'line',
-            borderWidth: 6,
+            borderDash: [0, 6],
+            borderCapStyle: 'round',
             order: 7
         },
         {
             label: 'LLDPE Masuk',
-            data: getValuesToArray(chartData.material_in, 'LLDPE'),
+            data: getValuesToArray(labels, chartData.material_ins, 'LLDPE'),
             borderColor: 'rgba(22, 176, 100, 0.8)',
             backgroundColor: 'rgba(22, 176, 100, 0.8)',
             type: 'line',
@@ -213,18 +334,19 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         {
             label: 'LLDPE Keluar',
-            data: getValuesToArray(chartData.material_out, 'LLDPE'),
+            data: getValuesToArray(labels, chartData.material_outs, 'LLDPE'),
             borderColor: 'rgba(22, 176, 100, 0.8)',
             backgroundColor: 'rgba(22, 176, 100, 0.8)',
             type: 'line',
-            borderWidth: 6,
+            borderDash: [0, 6],
+            borderCapStyle: 'round',
             order: 9
         },
     ]
 
     const datasets = barChartData.concat(lineChartData)
 
-    new Chart(ctx, {
+    return new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
@@ -262,4 +384,4 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         },
     });
-});
+}
