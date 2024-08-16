@@ -38,8 +38,12 @@ class MaterialKeluarController extends Controller
 
             if ($start_date > $end_date) {
                 return response()->json([
-                    'msg' => 'Tanggal awal tidak boleh lebih besar dari tanggal akhir',
-                ], 400);
+                    "error" => "Tanggal awal tidak boleh lebih besar dari tanggal akhir",
+                    "draw" => intval($request->input('draw')),
+                    "recordsTotal" => 0,
+                    "recordsFiltered" => 0,
+                    "data" => []
+                ]);
             }
 
             if (!empty($start_date) && !empty($end_date)) {
