@@ -44,27 +44,35 @@ class HomeController extends Controller
         $material_outs = MaterialKeluar::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
         $material_stock_records = StokMaterialRecord::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
 
-        $prev_month = $current_month == 1 ? 12 : $current_month - 1;
-        $prev_year = $current_month == 1 ? $current_year - 1 : $current_year;
+        function getPrevStockForMaterial($current_year, $current_month, $material_id, $material_code)
+        {
+            $prev_month = $current_month == 1 ? 12 : $current_month - 1;
+            $prev_year = $current_month == 1 ? $current_year - 1 : $current_year;
 
-        $prev_month_record = StokMaterialRecord::whereMonth('waktu', $prev_month)
-            ->whereYear('waktu', $prev_year)
-            ->orderBy('waktu', 'desc')
-            ->get()
-            ->groupBy('data_material_id')
-            ->map(function ($group) {
-                return $group->first();
-            });
+            $prev_record = StokMaterialRecord::where('data_material_id', $material_id)
+                ->whereMonth('waktu', $prev_month)
+                ->whereYear('waktu', $prev_year)
+                ->orderBy('waktu', 'desc')
+                ->first();
+
+            if ($prev_record) {
+                return [$material_code => $prev_record->stok];
+            } else {
+                if ($prev_year >= 2020) {
+                    // Recursively call the function for the previous month
+                    return getPrevStockForMaterial($prev_year, $prev_month, $material_id, $material_code);
+                } else {
+                    // No data found all the way back to 2020
+                    return [$material_code => 0]; // or any default value you prefer
+                }
+            }
+        }
 
         $prev_stock = [];
 
-        if ($prev_month_record->isNotEmpty()) {
-            foreach ($prev_month_record as $material_id => $rec) {
-                $mat_code = $material_codes->get($material_id);
-                if ($mat_code) {
-                    $prev_stock[$mat_code] = $rec->stok;
-                }
-            }
+        foreach ($material_codes as $material_id => $material_code) {
+            $result = getPrevStockForMaterial($current_year, $current_month, $material_id, $material_code);
+            $prev_stock = array_merge($prev_stock, $result);
         }
 
         // Date as key
