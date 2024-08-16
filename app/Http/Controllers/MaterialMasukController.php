@@ -266,8 +266,20 @@ class MaterialMasukController extends Controller
                 }
 
                 $record->update([
-                    'stok' => $stokBaru,
+                    'stok' => $record->stok + $request->jumlah,
                 ]);
+
+                // get all records where waktu is greater than the current record
+                $records = StokMaterialRecord::where('waktu', '>', $request->waktu)
+                    ->where('data_material_id', $request->nama_material)
+                    ->get();
+                if ($records) {
+                    foreach ($records as $r) {
+                        $r->update([
+                            'stok' => $r->stok + $request->jumlah,
+                        ]);
+                    }
+                }
             } else {
                 return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('status', 'Data tidak ditemukan');
             }
@@ -285,8 +297,20 @@ class MaterialMasukController extends Controller
     {
         $material_masuk = MaterialMasuk::findOrFail($id);
 
+        // Delete stok record
         $record = StokMaterialRecord::where('id', $material_masuk->record_id)->first();
         if ($record) {
+            $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
+                ->where('id', $material_masuk->record_id)
+                ->get();
+            if ($records) {
+                foreach ($records as $r) {
+                    $r->update([
+                        'stok' => $r->stok - $record->stok
+                    ]);
+                }
+            }
+
             $record->delete();
         }
 

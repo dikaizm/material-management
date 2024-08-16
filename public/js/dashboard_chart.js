@@ -99,7 +99,6 @@ async function updateChartData(year, month) {
     }
 
     const data = await response.json();
-    console.log(data);
 
     chartData.year = year;
     chartData.month = month;
@@ -112,8 +111,6 @@ async function updateChartData(year, month) {
 
 
 function createChart(chartData) {
-    console.log(chartData)
-
     // Ensure that the element with id 'chart_material' exists
     const chartElement = document.getElementById('chart_material');
     if (!chartElement) {

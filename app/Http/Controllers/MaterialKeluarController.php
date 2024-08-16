@@ -261,6 +261,28 @@ class MaterialKeluarController extends Controller
                     'stok' => $stokBaru,
                     'status' => $status
                 ]);
+
+                // Update stok record
+                $record = StokMaterialRecord::where('id', $material_keluar->record_id)->first();
+                if (!$record) {
+                    return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('error', 'Data tidak ditemukan');
+                }
+
+                $record->update([
+                    'stok' => $record->stok - $request->jumlah
+                ]);
+
+                // get all records where waktu is greater than the current record
+                $records = StokMaterialRecord::where('waktu', '>', $request->waktu)
+                    ->where('data_material_id', $request->nama_material)
+                    ->get();
+                if ($records) {
+                    foreach ($records as $r) {
+                        $r->update([
+                            'stok' => $r->stok - $request->jumlah,
+                        ]);
+                    }
+                }
             } else {
                 return redirect()->route('materialKeluar.edit', ['id' => $material_keluar->id])->with('error', 'Data Material tidak ditemukan');
             }
@@ -277,6 +299,23 @@ class MaterialKeluarController extends Controller
     public function hapusMaterialKeluar($id)
     {
         $material_keluar = MaterialKeluar::findOrFail($id);
+
+          // Delete stok record
+          $record = StokMaterialRecord::where('id', $material_keluar->record_id)->first();
+          if ($record) {
+              $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
+                  ->where('id', $material_keluar->record_id)
+                  ->get();
+              if ($records) {
+                  foreach ($records as $r) {
+                      $r->update([
+                          'stok' => $r->stok - $record->stok
+                      ]);
+                  }
+              }
+
+              $record->delete();
+          }
 
         $stok_material = StokMaterial::where('data_material_id', $material_keluar->data_material_id)->first();
         if ($stok_material) {
