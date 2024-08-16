@@ -39,9 +39,30 @@ Route::get('/chart-data', function (Request $request) {
         $current_month = Carbon::now($timezone)->format('m');
     }
 
+    $material_codes = DataMaterial::pluck('kode_material', 'id');
+
     $material_ins = MaterialMasuk::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
     $material_outs = MaterialKeluar::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
     $material_stock_records = StokMaterialRecord::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
+    $prev_month_record = StokMaterialRecord::whereMonth('waktu', $current_month - 1)
+        ->whereYear('waktu', $current_year)
+        ->orderBy('waktu', 'desc')
+        ->get()
+        ->groupBy('data_material_id')
+        ->map(function ($group) {
+            return $group->first();
+        });
+
+    $prev_stock = [];
+
+    if ($prev_month_record->isNotEmpty()) {
+        foreach ($prev_month_record as $material_id => $rec) {
+            $mat_code = $material_codes->get($material_id);
+            if ($mat_code) {
+                $prev_stock[$mat_code] = $rec->stok;
+            }
+        }
+    }
 
     // Date as key
     $mapped_material_in_data = [];
@@ -97,5 +118,6 @@ Route::get('/chart-data', function (Request $request) {
         'material_ins' => $mapped_material_in_data,
         'material_outs' => $mapped_material_out_data,
         'material_stock' => $mapped_material_stock_data,
+        'prev_stock' => $prev_stock,
     ]);
 });

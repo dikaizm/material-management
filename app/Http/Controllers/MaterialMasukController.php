@@ -263,17 +263,17 @@ class MaterialMasukController extends Controller
                 }
 
                 $record->update([
-                    'stok' => $record->stok + $request->jumlah,
+                    'stok' => $record->stok + ($request->jumlah - $old_stok),
                 ]);
 
                 // get all records where waktu is greater than the current record
-                $records = StokMaterialRecord::where('waktu', '>', $request->waktu)
-                    ->where('data_material_id', $request->nama_material)
+                $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
+                    ->where('data_material_id', $record->data_material_id)
                     ->get();
                 if ($records) {
                     foreach ($records as $r) {
                         $r->update([
-                            'stok' => $r->stok + $request->jumlah,
+                            'stok' => $r->stok + ($request->jumlah - $old_stok),
                         ]);
                     }
                 }
@@ -296,19 +296,25 @@ class MaterialMasukController extends Controller
 
         // Delete stok record
         $record = StokMaterialRecord::where('id', $material_masuk->record_id)->first();
-        if ($record) {
-            $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
-                ->where('data_material_id', $material_masuk->data_material_id)
-                ->get();
-            if ($records) {
-                foreach ($records as $r) {
-                    $r->update([
-                        'stok' => $r->stok - $material_masuk->jumlah,
-                    ]);
-                }
-            }
-
+        $material_in_records = MaterialMasuk::where('record_id', $record->id)->get();
+        if ($material_in_records->count() == 1) {
             $record->delete();
+        } else {
+            $record->update([
+                'stok' => $record->stok - $material_masuk->jumlah,
+            ]);
+        }
+
+        // Update stok material untuk waktu lebih besar
+        $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
+            ->where('data_material_id', $record->data_material_id)
+            ->get();
+        if ($records) {
+            foreach ($records as $r) {
+                $r->update([
+                    'stok' => $r->stok - $material_masuk->jumlah
+                ]);
+            }
         }
 
         $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->first();
