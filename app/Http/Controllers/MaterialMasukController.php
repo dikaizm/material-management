@@ -10,6 +10,7 @@ use App\Models\StokMaterialRecord;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class MaterialMasukController extends Controller
 {
@@ -220,8 +221,6 @@ class MaterialMasukController extends Controller
         if ($request->isMethod('post')) {
             $this->validate($request, [
                 'waktu' => 'required|date',
-                // 'nama_material' => 'required|exists:data_materials,id',
-                // 'kode_material' => 'required|exists:data_materials,id',
                 'jumlah' => 'required|integer',
                 'satuan' => 'required|string|max:50',
             ]);
@@ -232,6 +231,23 @@ class MaterialMasukController extends Controller
 
             if ($request->jumlah <= 0) {
                 return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
+            }
+
+            if (strtolower($request->satuan) != 'ton') {
+                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', 'Satuan yang diinputkan harus ton');
+            }
+
+            $material_keluars = MaterialKeluar::where('data_material_id', $material_masuk->data_material_id)
+                ->where('waktu', '>=', $material_masuk->waktu)
+                ->get();
+
+            $totalMaterialKeluar = 0;
+            foreach ($material_keluars as $material_keluar) {
+                $totalMaterialKeluar += $material_keluar->jumlah;
+            }
+
+            if ($totalMaterialKeluar > $request->jumlah) {
+                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', "Jumlah material keluar lebih besar dari material masuk, hapus material keluar setelah tanggal {$material_masuk->waktu} terlebih dahulu");
             }
 
             $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->first();
@@ -292,76 +308,66 @@ class MaterialMasukController extends Controller
 
     public function hapusMaterialMasuk($id)
     {
-        $material_masuk = MaterialMasuk::findOrFail($id);
+        try {
+            return DB::transaction(function () use ($id) {
+                $material_masuk = MaterialMasuk::findOrFail($id);
+                $record = StokMaterialRecord::where('id', $material_masuk->record_id)->firstOrFail();
 
-        // Delete stok record
-        $record = StokMaterialRecord::where('id', $material_masuk->record_id)->first();
-        $material_in_records = MaterialMasuk::where('record_id', $record->id)->get();
-        if ($material_in_records->count() == 1) {
+                $this->updateStokMaterialRecord($record, $material_masuk);
+                $this->updateFutureStokMaterialRecords($record, $material_masuk);
+
+                $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->firstOrFail();
+                $this->validateMaterialKeluar($material_masuk);
+                $this->updateStokMaterial($stok_material, $material_masuk);
+
+                $material_masuk->delete();
+
+                return response()->json(['msg' => 'Data yang dipilih telah dihapus']);
+            });
+        } catch (\Exception $e) {
+            return response()->json(['msg' => $e->getMessage()], 400);
+        }
+    }
+
+    private function updateStokMaterialRecord($record, $material_masuk)
+    {
+        $material_in_records = MaterialMasuk::where('record_id', $record->id)->count();
+        if ($material_in_records == 1) {
             $record->delete();
         } else {
-            $record->update([
-                'stok' => $record->stok - $material_masuk->jumlah,
-            ]);
+            $record->update(['stok' => $record->stok - $material_masuk->jumlah]);
         }
+    }
 
-        // Update stok material untuk waktu lebih besar
-        $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
+    private function updateFutureStokMaterialRecords($record, $material_masuk)
+    {
+        StokMaterialRecord::where('waktu', '>', $record->waktu)
             ->where('data_material_id', $record->data_material_id)
-            ->get();
-        if ($records) {
-            foreach ($records as $r) {
-                $r->update([
-                    'stok' => $r->stok - $material_masuk->jumlah
-                ]);
-            }
+            ->update(['stok' => DB::raw("stok - {$material_masuk->jumlah}")]);
+    }
+
+    private function validateMaterialKeluar($material_masuk)
+    {
+        $totalMaterialKeluar = MaterialKeluar::where('data_material_id', $material_masuk->data_material_id)
+            ->where('waktu', '<=', $material_masuk->waktu)
+            ->sum('jumlah');
+
+        if ($totalMaterialKeluar > $material_masuk->jumlah) {
+            throw new \Exception("Jumlah material keluar lebih besar dari material masuk, hapus material keluar terlebih dahulu");
+        }
+    }
+
+    private function updateStokMaterial($stok_material, $material_masuk)
+    {
+        $stokBaru = $stok_material->stok - $material_masuk->jumlah;
+        if ($stokBaru < 0) {
+            throw new \Exception("Stok tidak boleh kurang dari 0, hapus material keluar {$material_masuk->dataMaterial->kode_material} setelah tanggal {$material_masuk->waktu} terlebih dahulu");
         }
 
-        $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->first();
-        if ($stok_material) {
-            // Check if there is material keluar where date is less than material masuk
-            $material_keluars = MaterialKeluar::where('data_material_id', $material_masuk->data_material_id)
-                ->where('waktu', '<=', $material_masuk->waktu)
-                ->get();
-
-            // Count the total material keluar
-            $totalMaterialKeluar = 0;
-            foreach ($material_keluars as $material_keluar) {
-                $totalMaterialKeluar += $material_keluar->jumlah;
-            }
-
-            // Check if the total material keluar is greater than material masuk
-            if ($totalMaterialKeluar > $material_masuk->jumlah) {
-                // 400 Bad Request
-                return response()->json([
-                    'msg' => "Jumlah material keluar lebih besar dari material masuk, hapus material keluar terlebih dahulu",
-                ], 400);
-            }
-
-            $stok = $stok_material->stok;
-            $stokBaru = $stok - $material_masuk->jumlah;
-            if ($stokBaru < 0) {
-                // 400 Bad Request
-                return response()->json([
-                    'msg' => "Stok tidak boleh kurang dari 0, hapus material keluar {$material_masuk->dataMaterial->kode_material} terlebih dahulu",
-                ], 400);
-            }
-
-            $maksimumstok = $stok_material->maksimum_stok;
-            if ($maksimumstok >= $stokBaru) {
-                $status = 'Tidak Overstock';
-            } else {
-                $status = 'Overstock';
-            }
-            StokMaterial::where('data_material_id', $material_masuk->data_material_id)->update([
-                'stok' => $stokBaru,
-                'status' => $status
-            ]);
-        }
-
-        $material_masuk->delete($id);
-        return response()->json([
-            'msg' => 'Data yang dipilih telah dihapus'
+        $status = $stok_material->maksimum_stok >= $stokBaru ? 'Tidak Overstock' : 'Overstock';
+        $stok_material->update([
+            'stok' => $stokBaru,
+            'status' => $status
         ]);
     }
 

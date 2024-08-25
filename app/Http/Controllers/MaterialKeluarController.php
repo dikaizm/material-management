@@ -250,7 +250,7 @@ class MaterialKeluarController extends Controller
                 ]);
 
                 $stok = $stok_material->stok;
-                $stokBaru = $stok + $old_stok - $request->jumlah;
+                $stokBaru = $stok - ($request->jumlah - $old_stok);
                 $maksimumstok = $stok_material->maksimum_stok;
                 if ($maksimumstok >= $stokBaru) {
                     $status = 'Tidak Overstock';
