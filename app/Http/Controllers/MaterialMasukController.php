@@ -251,11 +251,15 @@ class MaterialMasukController extends Controller
 
     private function validateEditMaterialKeluar($material_masuk, $new_jumlah)
     {
+        $totalMaterialMasuk = MaterialMasuk::where('data_material_id', $material_masuk->data_material_id)
+            ->where('waktu', '<=', $material_masuk->waktu)
+            ->sum('jumlah');
+
         $totalMaterialKeluar = MaterialKeluar::where('data_material_id', $material_masuk->data_material_id)
             ->where('waktu', '>=', $material_masuk->waktu)
             ->sum('jumlah');
 
-        if ($totalMaterialKeluar > $new_jumlah) {
+        if ($totalMaterialKeluar > $totalMaterialMasuk + $new_jumlah) {
             throw new \Exception("Jumlah material keluar lebih besar dari material masuk, hapus material keluar setelah tanggal {$material_masuk->waktu} terlebih dahulu");
         }
     }
@@ -340,11 +344,15 @@ class MaterialMasukController extends Controller
 
     private function validateMaterialKeluar($material_masuk)
     {
+        $totalMaterialMasuk = MaterialMasuk::where('data_material_id', $material_masuk->data_material_id)
+        ->where('waktu', '<=', $material_masuk->waktu)
+        ->sum('jumlah');
+
         $totalMaterialKeluar = MaterialKeluar::where('data_material_id', $material_masuk->data_material_id)
             ->where('waktu', '<=', $material_masuk->waktu)
             ->sum('jumlah');
 
-        if ($totalMaterialKeluar > $material_masuk->jumlah) {
+        if ($totalMaterialKeluar > $totalMaterialMasuk) {
             throw new \Exception("Jumlah material keluar lebih besar dari material masuk, hapus material keluar setelah tanggal {$material_masuk->waktu} terlebih dahulu");
         }
     }
