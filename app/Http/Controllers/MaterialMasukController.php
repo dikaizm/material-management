@@ -218,92 +218,84 @@ class MaterialMasukController extends Controller
     public function ubahMaterialMasuk($id, Request $request)
     {
         $material_masuk = MaterialMasuk::findOrFail($id);
+
         if ($request->isMethod('post')) {
             $this->validate($request, [
-                'waktu' => 'required|date',
-                'jumlah' => 'required|integer',
-                'satuan' => 'required|string|max:50',
+                'waktu' => 'required|date|before_or_equal:today',
+                'jumlah' => 'required|integer|min:1',
+                'satuan' => 'required|string|max:50|in:ton,TON',
             ]);
 
-            if (Carbon::parse($request->waktu)->toDateString() > Carbon::now('Asia/Jakarta')->toDateString()) {
-                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', 'Waktu yang diinputkan tidak boleh lebih dari hari ini.');
+            try {
+                DB::transaction(function () use ($request, $material_masuk) {
+                    $this->validateEditMaterialKeluar($material_masuk, $request->jumlah);
+                    $this->updateMaterialMasuk($material_masuk, $request);
+                    $this->updateEditStokMaterial($material_masuk, $request->jumlah);
+                    $this->updateStokMaterialRecords($material_masuk, $request->jumlah);
+                });
+
+                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])
+                    ->with('status', 'Data telah tersimpan di database');
+            } catch (\Exception $e) {
+                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])
+                    ->with('error', $e->getMessage());
             }
-
-            if ($request->jumlah <= 0) {
-                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', 'Jumlah yang diinputkan harus lebih dari 0');
-            }
-
-            if (strtolower($request->satuan) != 'ton') {
-                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', 'Satuan yang diinputkan harus ton');
-            }
-
-            $material_keluars = MaterialKeluar::where('data_material_id', $material_masuk->data_material_id)
-                ->where('waktu', '>=', $material_masuk->waktu)
-                ->get();
-
-            $totalMaterialKeluar = 0;
-            foreach ($material_keluars as $material_keluar) {
-                $totalMaterialKeluar += $material_keluar->jumlah;
-            }
-
-            if ($totalMaterialKeluar > $request->jumlah) {
-                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', "Jumlah material keluar lebih besar dari material masuk, hapus material keluar setelah tanggal {$material_masuk->waktu} terlebih dahulu");
-            }
-
-            $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->first();
-            if ($stok_material) {
-                $old_stok = $material_masuk->jumlah;
-                $material_masuk->update([
-                    'waktu' => $request->waktu,
-                    // 'data_material_id' => $request->nama_material,
-                    'jumlah' => $request->jumlah,
-                    'satuan' => strtolower($request->satuan),
-                ]);
-
-                $stok = $stok_material->stok;
-                $stokBaru = $stok - $old_stok + $request->jumlah;
-                $maksimumstok = $stok_material->maksimum_stok;
-                if ($maksimumstok >= $stokBaru) {
-                    $status = 'Tidak Overstock';
-                } else {
-                    $status = 'Overstock';
-                }
-                StokMaterial::where('data_material_id', $material_masuk->data_material_id)->update([
-                    'stok' => $stokBaru,
-                    'status' => $status
-                ]);
-
-                $record = StokMaterialRecord::where('id', $material_masuk->record_id)->first();
-                if (!$record) {
-                    return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('error', 'Data tidak ditemukan');
-                }
-
-                $record->update([
-                    'stok' => $record->stok + ($request->jumlah - $old_stok),
-                ]);
-
-                // get all records where waktu is greater than the current record
-                $records = StokMaterialRecord::where('waktu', '>', $record->waktu)
-                    ->where('data_material_id', $record->data_material_id)
-                    ->get();
-                if ($records) {
-                    foreach ($records as $r) {
-                        $r->update([
-                            'stok' => $r->stok + ($request->jumlah - $old_stok),
-                        ]);
-                    }
-                }
-            } else {
-                return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('status', 'Data tidak ditemukan');
-            }
-
-            return redirect()->route('materialMasuk.edit', ['id' => $material_masuk->id])->with('status', 'Data telah tersimpan di database');
         }
+
         $dataMaterials = DataMaterial::all();
         return view('page.admin.materialMasuk.ubahMaterialMasuk', [
             'material_masuk' => $material_masuk,
             'dataMaterials' => $dataMaterials,
         ]);
+    }
+
+    private function validateEditMaterialKeluar($material_masuk, $new_jumlah)
+    {
+        $totalMaterialKeluar = MaterialKeluar::where('data_material_id', $material_masuk->data_material_id)
+            ->where('waktu', '>=', $material_masuk->waktu)
+            ->sum('jumlah');
+
+        if ($totalMaterialKeluar > $new_jumlah) {
+            throw new \Exception("Jumlah material keluar lebih besar dari material masuk, hapus material keluar setelah tanggal {$material_masuk->waktu} terlebih dahulu");
+        }
+    }
+
+    private function updateMaterialMasuk($material_masuk, $request)
+    {
+        $material_masuk->update([
+            'waktu' => $request->waktu,
+            'jumlah' => $request->jumlah,
+            'satuan' => strtolower($request->satuan),
+        ]);
+    }
+
+    private function updateEditStokMaterial($material_masuk, $new_jumlah)
+    {
+        $stok_material = StokMaterial::where('data_material_id', $material_masuk->data_material_id)->firstOrFail();
+
+        $old_stok = $material_masuk->jumlah;
+        $stokBaru = $stok_material->stok - $old_stok + $new_jumlah;
+        $status = $stok_material->maksimum_stok >= $stokBaru ? 'Tidak Overstock' : 'Overstock';
+
+        $stok_material->update([
+            'stok' => $stokBaru,
+            'status' => $status
+        ]);
+    }
+
+    private function updateStokMaterialRecords($material_masuk, $new_jumlah)
+    {
+        $record = StokMaterialRecord::findOrFail($material_masuk->record_id);
+        $old_stok = $material_masuk->jumlah;
+        $difference = $new_jumlah - $old_stok;
+
+        $record->update([
+            'stok' => $record->stok + $difference,
+        ]);
+
+        StokMaterialRecord::where('waktu', '>', $record->waktu)
+            ->where('data_material_id', $record->data_material_id)
+            ->update(['stok' => DB::raw("stok + $difference")]);
     }
 
     public function hapusMaterialMasuk($id)
@@ -353,7 +345,7 @@ class MaterialMasukController extends Controller
             ->sum('jumlah');
 
         if ($totalMaterialKeluar > $material_masuk->jumlah) {
-            throw new \Exception("Jumlah material keluar lebih besar dari material masuk, hapus material keluar terlebih dahulu");
+            throw new \Exception("Jumlah material keluar lebih besar dari material masuk, hapus material keluar setelah tanggal {$material_masuk->waktu} terlebih dahulu");
         }
     }
 
