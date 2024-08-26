@@ -257,7 +257,7 @@ class MaterialKeluarController extends Controller
                 } else {
                     $status = 'Overstock';
                 }
-                StokMaterial::where('data_material_id', $request->nama_material)->update([
+                StokMaterial::where('data_material_id', $material_keluar->data_material_id)->update([
                     'stok' => $stokBaru,
                     'status' => $status
                 ]);
