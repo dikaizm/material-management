@@ -229,8 +229,8 @@ class MaterialMasukController extends Controller
             try {
                 DB::transaction(function () use ($request, $material_masuk) {
                     $this->validateEditMaterialKeluar($material_masuk, $request->jumlah);
-                    $this->updateMaterialMasuk($material_masuk, $request);
                     $this->updateEditStokMaterial($material_masuk, $request->jumlah);
+                    $this->updateMaterialMasuk($material_masuk, $request);
                     $this->updateStokMaterialRecords($material_masuk, $request->jumlah);
                 });
 
