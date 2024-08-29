@@ -81,7 +81,7 @@
       ],
       [
           'text' => 'Stok Material',
-          'icon' => 'fas fa-truck',
+          'icon' => 'fas fa-box',
           'admin_only' => false,
           'is_multi' => true,
           'href' => [
@@ -94,6 +94,42 @@
                   'section_text' => 'Atur Maksimum Stok',
                   'section_icon' => 'far fa-circle',
                   'section_href' => route('stokMaterial.edit'),
+              ],
+          ],
+      ],
+      [
+          'text' => 'Supplier',
+          'icon' => 'fas fa-truck',
+          'admin_only' => false,
+          'is_multi' => true,
+          'href' => [
+              [
+                  'section_text' => 'Data Supplier',
+                  'section_icon' => 'far fa-circle',
+                  'section_href' => route('supplier.index'),
+              ],
+              [
+                  'section_text' => 'Tambah Supplier',
+                  'section_icon' => 'far fa-circle',
+                  'section_href' => route('supplier.add'),
+              ],
+          ],
+      ],
+      [
+          'text' => 'Customer',
+          'icon' => 'fas fa-user',
+          'admin_only' => false,
+          'is_multi' => true,
+          'href' => [
+              [
+                  'section_text' => 'Data Customer',
+                  'section_icon' => 'far fa-circle',
+                  'section_href' => route('customer.index'),
+              ],
+              [
+                  'section_text' => 'Tambah Customer',
+                  'section_icon' => 'far fa-circle',
+                  'section_href' => route('customer.add'),
               ],
           ],
       ],
