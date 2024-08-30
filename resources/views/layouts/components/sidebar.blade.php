@@ -78,6 +78,11 @@
                   'section_href' => route('materialKeluar.index'),
               ],
               [
+                  'section_text' => 'Request Material Keluar',
+                  'section_icon' => 'far fa-circle',
+                  'section_href' => route('materialKeluar.request'),
+              ],
+              [
                   'section_text' => 'Tambah Material Keluar',
                   'section_icon' => 'far fa-circle',
                   'section_href' => route('materialKeluar.add'),

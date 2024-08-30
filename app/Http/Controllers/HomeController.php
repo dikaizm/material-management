@@ -40,8 +40,8 @@ class HomeController extends Controller
 
         $material_codes = DataMaterial::pluck('kode_material', 'id');
 
-        $material_ins = MaterialMasuk::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
-        $material_outs = MaterialKeluar::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
+        $material_ins = MaterialMasuk::where('status', '=', 'diterima')->whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
+        $material_outs = MaterialKeluar::where('status', '=', 'diterima')->whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
         $material_stock_records = StokMaterialRecord::whereMonth('waktu', $current_month)->whereYear('waktu', $current_year)->get();
 
         function getPrevStockForMaterial($current_year, $current_month, $material_id, $material_code)
@@ -50,6 +50,7 @@ class HomeController extends Controller
             $prev_year = $current_month == 1 ? $current_year - 1 : $current_year;
 
             $prev_record = StokMaterialRecord::where('data_material_id', $material_id)
+                ->where('status', '=', 'diterima')
                 ->whereMonth('waktu', $prev_month)
                 ->whereYear('waktu', $prev_year)
                 ->orderBy('waktu', 'desc')
@@ -144,8 +145,8 @@ class HomeController extends Controller
             ],
 
             'totalMaterial' => DataMaterial::all()->count(),
-            'totalMaterialMasuk' => MaterialMasuk::sum('jumlah'),
-            'totalMaterialKeluar' => MaterialKeluar::sum('jumlah'),
+            'totalMaterialMasuk' => MaterialMasuk::where('status', '=', 'diterima')->sum('jumlah'),
+            'totalMaterialKeluar' => MaterialKeluar::where('status', '=', 'diterima')->sum('jumlah'),
             'stokMaterial' => StokMaterial::sum('stok')
         ]);
     }

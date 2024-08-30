@@ -9,7 +9,7 @@ class MaterialKeluar extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['waktu', 'data_material_id', 'jumlah', 'satuan', 'created_by', 'record_id'];
+    protected $fillable = ['waktu', 'data_material_id', 'jumlah', 'satuan', 'created_by', 'record_id', 'status'];
 
     public function dataMaterial()
     {

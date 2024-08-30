@@ -80,6 +80,8 @@ Route::group(['prefix' => 'dashboard/admin'], function () {
         ->group(function () {
             Route::get('/', [MaterialKeluarController::class, 'index'])->name('index');
             Route::post('showdata', [MaterialKeluarController::class, 'dataTable'])->name('dataTable');
+            Route::get('/request', [MaterialKeluarController::class, 'request'])->name('request');
+            Route::post('/updateStatus', [MaterialKeluarController::class, 'updateStatus'])->name('updateStatus');
             Route::match(['get', 'post'], 'tambah', [MaterialKeluarController::class, 'tambahMaterialKeluar'])->name('add');
             Route::match(['get', 'post'], '{id}/ubah', [MaterialKeluarController::class, 'ubahMaterialKeluar'])->name('edit');
             Route::delete('{id}/hapus', [MaterialKeluarController::class, 'hapusMaterialKeluar'])->name('delete');

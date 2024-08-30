@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class MaterialMasukController extends Controller
 {
@@ -42,6 +43,18 @@ class MaterialMasukController extends Controller
         }
 
         $query = MaterialMasuk::query();
+
+        if ($isRequestPage) {
+            if (!auth()->user()->hasRole('direktur')) {
+                $query->where('status', '!=', 'diterima');
+            }
+        } else {
+            $query->where('status', '=', 'diterima');
+        }
+
+        // if (auth()->user()->hasRole('direktur')) {
+        //     $query->orderBy(DB::raw("CASE WHEN status = 'menunggu' THEN 1 ELSE 0 END"), 'desc');
+        // }
 
         if ($request->has('start_date') && $request->has('end_date')) {
             $start_date = $request->input('start_date');
@@ -143,33 +156,76 @@ class MaterialMasukController extends Controller
 
     public function updateStatus(Request $request)
     {
+        if (!auth()->user()->hasRole('direktur')) {
+            return response()->json(['msg' => 'Akses ditangguhkan'], 401);
+        }
+
         try {
-            $request->validate([
+            $validatedData = $request->validate([
                 'id' => 'required|exists:material_masuks,id',
                 'status' => 'required|string|in:diterima,ditolak,menunggu',
             ]);
 
-            $material_masuk = MaterialMasuk::findOrFail(intval($request->id));
-            if (!$material_masuk) {
-                return response()->json(['msg' => 'Data tidak ditemukan'], 404);
-            }
+            $material_masuk = MaterialMasuk::findOrFail($validatedData['id']);
+
+            $record = StokMaterialRecord::where('waktu', $material_masuk->waktu)
+                ->where('data_material_id', $material_masuk->data_material_id)
+                ->latest()
+                ->first();
 
             $current_status = $material_masuk->status;
-            $status = $request->status;
-            // if status is diterima and current status is menunggu
-            if ($current_status == 'menunggu' && $status == 'diterima') {
+            $new_status = $validatedData['status'];
 
+            if ($this->shouldUpdateStock($current_status, $new_status)) {
+                $this->updateStockRecords($material_masuk, $record, $new_status);
+                $this->updateStatusStokMaterial($material_masuk);
             }
 
-            // if status is ditolak and current status is menunggu
-
-            // if current status is diterima and new status is menunggu or ditolak
-
-            $material_masuk->update(['status' => $request->status]);
+            $material_masuk->update(['status' => $new_status]);
             return response()->json(['msg' => 'Status telah diubah']);
+        } catch (ValidationException $e) {
+            return response()->json(['msg' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json(['msg' => $e->getMessage()], 500);
+            return response()->json(['msg' => 'Terjadi kesalahan internal'], 500);
         }
+    }
+
+    private function shouldUpdateStock($current_status, $new_status): bool
+    {
+        return ($current_status === 'menunggu' || $current_status === 'ditolak') && $new_status === 'diterima' ||
+            $current_status === 'diterima' && ($new_status === 'menunggu' || $new_status === 'ditolak');
+    }
+
+    private function updateStockRecords(MaterialMasuk $material_masuk, ?StokMaterialRecord $record, string $new_status): void
+    {
+        $stockChange = $new_status === 'diterima' ? $material_masuk->jumlah : -$material_masuk->jumlah;
+
+        if ($record) {
+            $record->update([
+                'stok' => $record->stok + $stockChange,
+                'status' => $new_status
+            ]);
+        }
+
+        StokMaterialRecord::where('waktu', '>', $material_masuk->waktu)
+            ->where('data_material_id', $material_masuk->data_material_id)
+            ->increment('stok', $stockChange);
+    }
+
+    private function updateStatusStokMaterial(MaterialMasuk $material_masuk): void
+    {
+        $stokMaterial = StokMaterial::firstOrCreate(
+            ['data_material_id' => $material_masuk->data_material_id],
+            ['stok' => 0, 'maksimum_stok' => 20]
+        );
+
+        $newStock = $stokMaterial->stok + $material_masuk->jumlah;
+        $status = $newStock > $stokMaterial->maksimum_stok ? 'Overstock' : 'Tidak Overstock';
+
+        $stokMaterial->update([
+            'stok' => $newStock,
+            'status' => $status
+        ]);
     }
 
     public function tambahMaterialMasuk(Request $request)
@@ -203,11 +259,7 @@ class MaterialMasukController extends Controller
             // get record with waktu and data_material_id
             $record = StokMaterialRecord::where('waktu', $request->waktu)
                 ->where('data_material_id', $request->nama_material)->orderBy('created_at', 'desc')->first();
-            if ($record) {
-                $record->update([
-                    'stok' => $record->stok + $request->jumlah
-                ]);
-            } else {
+            if (!$record) {
                 $last_record_before = StokMaterialRecord::where('waktu', '<', $request->waktu)
                     ->where('data_material_id', $request->nama_material)->orderBy('waktu', 'desc')->first();
 
@@ -224,17 +276,25 @@ class MaterialMasukController extends Controller
                     'created_by' => auth()->user()->id,
                     'status' => $status,
                 ]);
+            } else {
+                if (auth()->user()->hasRole('direktur')) {
+                    $record->update([
+                        'stok' => $record->stok + $request->jumlah
+                    ]);
+                }
             }
 
-            // get all records where waktu is greater than the current record
-            $records = StokMaterialRecord::where('waktu', '>', $request->waktu)
-                ->where('data_material_id', $request->nama_material)
-                ->get();
-            if ($records) {
-                foreach ($records as $r) {
-                    $r->update([
-                        'stok' => $r->stok + $request->jumlah,
-                    ]);
+            if (auth()->user()->hasRole('direktur')) {
+                // get all records where waktu is greater than the current record
+                $records = StokMaterialRecord::where('waktu', '>', $request->waktu)
+                    ->where('data_material_id', $request->nama_material)
+                    ->get();
+                if ($records) {
+                    foreach ($records as $r) {
+                        $r->update([
+                            'stok' => $r->stok + $request->jumlah,
+                        ]);
+                    }
                 }
             }
 
@@ -248,27 +308,29 @@ class MaterialMasukController extends Controller
                 'status' => $status,
             ]);
 
-            $StokMaterial = StokMaterial::where('data_material_id', $request->nama_material)->first();
-            if ($StokMaterial) {
-                $stok = $StokMaterial->stok;
-                $stokBaru = $stok + $request->jumlah;
-                $maksimumstok = $StokMaterial->maksimum_stok;
-                if ($maksimumstok >= $stokBaru) {
-                    $status = 'Tidak Overstock';
+            if (auth()->user()->hasRole('direktur')) {
+                $StokMaterial = StokMaterial::where('data_material_id', $request->nama_material)->first();
+                if ($StokMaterial) {
+                    $stok = $StokMaterial->stok;
+                    $stokBaru = $stok + $request->jumlah;
+                    $maksimumstok = $StokMaterial->maksimum_stok;
+                    if ($maksimumstok >= $stokBaru) {
+                        $stock_status = 'Tidak Overstock';
+                    } else {
+                        $stock_status = 'Overstock';
+                    }
+                    StokMaterial::where('data_material_id', $request->nama_material)->update([
+                        'stok' => $stokBaru,
+                        'status' => $stock_status
+                    ]);
                 } else {
-                    $status = 'Overstock';
-                }
-                StokMaterial::where('data_material_id', $request->nama_material)->update([
-                    'stok' => $stokBaru,
-                    'status' => $status
-                ]);
-            } else {
-                StokMaterial::create([
-                    'data_material_id' => $request->nama_material,
-                    'stok' => $request->jumlah,
-                    'maksimum_stok' => 20,
-                ]);
-            };
+                    StokMaterial::create([
+                        'data_material_id' => $request->nama_material,
+                        'stok' => $request->jumlah,
+                        'maksimum_stok' => 20,
+                    ]);
+                };
+            }
             return redirect()->route('materialMasuk.add')->with('status', 'Data telah tersimpan di database');
         }
 

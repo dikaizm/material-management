@@ -1,5 +1,5 @@
 @extends('layouts.base_admin.base_dashboard')
-@section('judul', 'List Material Masuk')
+@section('judul', 'List Material Keluar')
 @section('script_head')
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.20/css/dataTables.bootstrap4.min.css">
   <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -10,14 +10,14 @@
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1>Request Material Masuk</h1>
+          <h1>Request Material Keluar</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item">
               <a href="{{ route('home') }}">Beranda</a>
             </li>
-            <li class="breadcrumb-item active">Request Material Masuk</li>
+            <li class="breadcrumb-item active">Request Material Keluar</li>
           </ol>
         </div>
       </div>
@@ -57,10 +57,10 @@
             </div>
           </div>
 
-          <a href="materialMasuk/pdf" class="btn btn-success" style="height: fit-content;">Download PDF</a>
+          <a href="materialKeluar/pdf" class="btn btn-success" style="height: fit-content;">Download PDF</a>
         </div>
 
-        <table id="previewMaterialMasuk" class="table-striped table-bordered display table" style="width:100%">
+        <table id="previewMaterialKeluar" class="table-striped table-bordered display table" style="width:100%">
           <thead>
             <tr>
               <th>No</th>
@@ -91,11 +91,11 @@
   <script type="text/javascript" src="https://cdn.datatables.net/1.10.20/js/dataTables.bootstrap4.min.js"></script>
   <script>
     $(document).ready(function() {
-      var t = $('#previewMaterialMasuk').DataTable({
+      var t = $('#previewMaterialKeluar').DataTable({
         "serverSide": true,
         "processing": true,
         "ajax": {
-          "url": "{{ route('materialMasuk.dataTable') }}",
+          "url": "{{ route('materialKeluar.dataTable') }}",
           "dataType": "json",
           "type": "POST",
           "data": function(d) {
@@ -164,7 +164,7 @@
       });
 
       t.on('draw.dt', function() {
-        var PageInfo = $('#previewMaterialMasuk').DataTable().page.info();
+        var PageInfo = $('#previewMaterialKeluar').DataTable().page.info();
         t.column(0, {
           page: 'current'
         }).nodes().each(function(cell, i) {
@@ -173,7 +173,7 @@
       });
 
       // hapus data
-      $('#previewMaterialMasuk').on('click', '.hapusData', function() {
+      $('#previewMaterialKeluar').on('click', '.hapusData', function() {
         var id = $(this).data("id");
         var url = $(this).data("url");
         Swal.fire({
@@ -196,22 +196,19 @@
               },
               success: function(response) {
                 Swal.fire('Terhapus!', response.msg, 'success');
-                $('#previewMaterialMasuk').DataTable().ajax.reload();
-              },
-              error: function(xhr) {
-                Swal.fire('Gagal!', xhr.responseJSON.msg, 'error');
+                $('#previewMaterialKeluar').DataTable().ajax.reload();
               }
             });
           }
         })
       });
 
-      $('#previewMaterialMasuk').on('change', '.status', function() {
+      $('#previewMaterialKeluar').on('change', '.status', function() {
         const id = $(this).data('id');
         const status = $(this).val();
 
         $.ajax({
-          url: "{{ route('materialMasuk.updateStatus') }}",
+          url: "{{ route('materialKeluar.updateStatus') }}",
           type: 'POST',
           data: {
             status: status,
