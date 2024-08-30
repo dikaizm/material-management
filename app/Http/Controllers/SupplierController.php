@@ -87,7 +87,7 @@ class SupplierController extends Controller
                 $nested_data['phone'] = $d->phone;
                 $nested_data['address'] = $d->address;
 
-                if (auth()->user()->hasRole('admin')) {
+                if (auth()->user()->hasRole('direktur')) {
                     $nested_data['options'] = "<a href='$url_edit'><i class='fas fa-edit fa-lg'></i></a>
                     <a style='border: none; background-color:transparent;' class='hapusData' data-id='$d->id' data-url='$url_delete'><i class='fas fa-trash fa-lg text-danger'></i></a>";
                 }

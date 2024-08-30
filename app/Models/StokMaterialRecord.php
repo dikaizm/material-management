@@ -9,7 +9,7 @@ class StokMaterialRecord extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['data_material_id', 'stok', 'waktu', 'created_by'];
+    protected $fillable = ['data_material_id', 'stok', 'waktu', 'created_by', 'status'];
 
     public function dataMaterial()
     {

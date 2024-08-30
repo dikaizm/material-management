@@ -66,7 +66,7 @@ class DataMaterialController extends Controller
                 $materialNestedData['created_by'] = $created_by;
                 $materialNestedData['created_at'] = $waktu;
 
-                if (auth()->user()->hasRole('admin')) {
+                if (auth()->user()->hasRole('direktur')) {
                     $materialNestedData['options'] = "
                         <a href='$url'><i class='fas fa-edit fa-lg'></i></a>
                         <a style='border: none; background-color:transparent;' class='hapusData' data-id='$material->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>

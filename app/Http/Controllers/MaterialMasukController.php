@@ -19,6 +19,11 @@ class MaterialMasukController extends Controller
         return view('page.admin.materialMasuk.index');
     }
 
+    public function request()
+    {
+        return view('page.admin.materialMasuk.request');
+    }
+
     public function dataTable(Request $request)
     {
         $totalFilteredRecord = $totalDataRecord = $draw_val = "";
@@ -30,6 +35,11 @@ class MaterialMasukController extends Controller
             4 => 'satuan',
             5 => 'created_by',
         );
+
+        $isRequestPage = false;
+        if ($request->has('status_type')) {
+            $isRequestPage = $request->input('status_type') == 'request';
+        }
 
         $query = MaterialMasuk::query();
 
@@ -99,7 +109,21 @@ class MaterialMasukController extends Controller
                 $materialMasukNestedData['jumlah'] = $material_masuk->jumlah;
                 $materialMasukNestedData['satuan'] = $material_masuk->satuan;
                 $materialMasukNestedData['created_by'] = $material_masuk->user->name;
-                if (auth()->user()->hasRole('admin')) {
+
+                if ($isRequestPage && auth()->user()->hasRole('direktur')) {
+                    $currentStatus = $material_masuk->status;
+
+                    $materialMasukNestedData['status'] = "
+                    <select class='form-control status' name='status' data-id='$material_masuk->id'>
+                        <option value='diterima'" . ($currentStatus == 'diterima' ? ' selected' : '') . ">Diterima</option>
+                        <option value='ditolak'" . ($currentStatus == 'ditolak' ? ' selected' : '') . ">Ditolak</option>
+                        <option value='menunggu'" . ($currentStatus == 'menunggu' ? ' selected' : '') . ">Menunggu</option>
+                    </select>";
+                } else {
+                    $materialMasukNestedData['status'] = $material_masuk->status;
+                }
+
+                if (auth()->user()->hasRole('direktur')) {
                     $materialMasukNestedData['options'] = "<a href='$url'><i class='fas fa-edit fa-lg'></i></a>
                     <a style='border: none; background-color:transparent;' class='hapusData' data-id='$material_masuk->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>";
                 }
@@ -115,6 +139,37 @@ class MaterialMasukController extends Controller
         );
 
         echo json_encode($get_json_data);
+    }
+
+    public function updateStatus(Request $request)
+    {
+        try {
+            $request->validate([
+                'id' => 'required|exists:material_masuks,id',
+                'status' => 'required|string|in:diterima,ditolak,menunggu',
+            ]);
+
+            $material_masuk = MaterialMasuk::findOrFail(intval($request->id));
+            if (!$material_masuk) {
+                return response()->json(['msg' => 'Data tidak ditemukan'], 404);
+            }
+
+            $current_status = $material_masuk->status;
+            $status = $request->status;
+            // if status is diterima and current status is menunggu
+            if ($current_status == 'menunggu' && $status == 'diterima') {
+
+            }
+
+            // if status is ditolak and current status is menunggu
+
+            // if current status is diterima and new status is menunggu or ditolak
+
+            $material_masuk->update(['status' => $request->status]);
+            return response()->json(['msg' => 'Status telah diubah']);
+        } catch (\Exception $e) {
+            return response()->json(['msg' => $e->getMessage()], 500);
+        }
     }
 
     public function tambahMaterialMasuk(Request $request)
@@ -140,6 +195,11 @@ class MaterialMasukController extends Controller
                 return redirect()->route('materialMasuk.add')->with('error', 'Satuan yang diinputkan harus ton');
             }
 
+            $status = 'menunggu';
+            if (auth()->user()->hasRole('direktur')) {
+                $status = 'diterima';
+            }
+
             // get record with waktu and data_material_id
             $record = StokMaterialRecord::where('waktu', $request->waktu)
                 ->where('data_material_id', $request->nama_material)->orderBy('created_at', 'desc')->first();
@@ -162,6 +222,7 @@ class MaterialMasukController extends Controller
                     'stok' => $last_record_stock + $request->jumlah,
                     'waktu' => $request->waktu,
                     'created_by' => auth()->user()->id,
+                    'status' => $status,
                 ]);
             }
 
@@ -184,6 +245,7 @@ class MaterialMasukController extends Controller
                 'satuan' => strtolower($request->satuan),
                 'created_by' => auth()->user()->id,
                 'record_id' => $record->id,
+                'status' => $status,
             ]);
 
             $StokMaterial = StokMaterial::where('data_material_id', $request->nama_material)->first();
@@ -345,8 +407,8 @@ class MaterialMasukController extends Controller
     private function validateMaterialKeluar($material_masuk)
     {
         $totalMaterialMasuk = MaterialMasuk::where('data_material_id', $material_masuk->data_material_id)
-        ->where('waktu', '<=', $material_masuk->waktu)
-        ->sum('jumlah');
+            ->where('waktu', '<=', $material_masuk->waktu)
+            ->sum('jumlah');
 
         $totalMaterialKeluar = MaterialKeluar::where('data_material_id', $material_masuk->data_material_id)
             ->where('waktu', '<=', $material_masuk->waktu)

@@ -67,6 +67,8 @@ Route::group(['prefix' => 'dashboard/admin'], function () {
         ->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('showdata', 'dataTable')->name('dataTable');
+            Route::get('/request', 'request')->name('request');
+            Route::post('/updateStatus', 'updateStatus')->name('updateStatus');
             Route::match(['get', 'post'], 'tambah', 'tambahMaterialMasuk')->name('add');
             Route::match(['get', 'post'], '{id}/ubah', 'ubahMaterialMasuk')->name('edit');
             Route::delete('{id}/hapus', 'hapusMaterialMasuk')->name('delete');

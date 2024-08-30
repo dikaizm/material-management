@@ -69,7 +69,7 @@
               <th style="width: 10%;">Kode</th>
               <th style="width: 15%;">Telepon</th>
               <th style="width: 25%;">Alamat</th>
-              @if (auth()->user()->hasRole('admin'))
+              @if (auth()->user()->hasRole('direktur'))
                 <th style="width: 10%;">Action</th>
               @endif
             </tr>
@@ -122,7 +122,7 @@
           {
             "data": "address"
           },
-          @if (auth()->user()->hasRole('admin'))
+          @if (auth()->user()->hasRole('direktur'))
             {
               "data": "options"
             }

@@ -98,7 +98,7 @@ class MaterialKeluarController extends Controller
                 $materialKeluarNestedData['jumlah'] = $material_keluar->jumlah;
                 $materialKeluarNestedData['satuan'] = $material_keluar->satuan;
                 $materialKeluarNestedData['created_by'] = $material_keluar->user->name;
-                if (auth()->user()->hasRole('admin')) {
+                if (auth()->user()->hasRole('direktur')) {
                     $materialKeluarNestedData['options'] = "
                         <a href='$url'><i class='fas fa-edit fa-lg'></i></a>
                         <a style='border: none; background-color:transparent;' class='hapusData' data-id='$material_keluar->id' data-url='$urlHapus'><i class='fas fa-trash fa-lg text-danger'></i></a>

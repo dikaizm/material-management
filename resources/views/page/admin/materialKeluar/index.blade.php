@@ -70,7 +70,7 @@
                         <th>Jumlah</th>
                         <th>Satuan</th>
                         <th>Oleh</th>
-                        @if (auth()->user()->hasRole('admin'))
+                        @if (auth()->user()->hasRole('direktur'))
                             <th>Action</th>
                         @endif
                     </tr>
@@ -115,7 +115,7 @@
                 { "data": "jumlah" },
                 { "data": "satuan" },
                 { "data": "created_by" },
-                @if (auth()->user()->hasRole('admin'))
+                @if (auth()->user()->hasRole('direktur'))
                 { "data": "options" }
                 @endif
             ],

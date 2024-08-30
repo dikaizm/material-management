@@ -50,7 +50,7 @@
                         <th>Kode Material</th>
                         <th>Oleh</th>
                         <th>Waktu</th>
-                        @if (auth()->user()->hasRole('admin'))
+                        @if (auth()->user()->hasRole('direktur'))
                             <th>Action</th>
                         @endif
                     </tr>
@@ -91,7 +91,7 @@
                 { "data": "kode_material" },
                 { "data": "created_by" },
                 { "data": "created_at" },
-                @if (auth()->user()->hasRole('admin'))
+                @if (auth()->user()->hasRole('direktur'))
                 { "data": "options" }
                 @endif
             ],

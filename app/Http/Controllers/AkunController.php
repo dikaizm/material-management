@@ -13,10 +13,10 @@ class AkunController extends Controller
     public function index()
     {
         $user = Auth::user();
-        if ($user->posisi == 'admin') {
+        if ($user->posisi == 'direktur') {
             return view('page.admin.akun.index');
         } else {
-            return redirect()->route('home')->with('status', 'Akses Ditangguhkan, Hanya Admin Yang Dapat Mengakses');
+            return redirect()->route('home')->with('status', 'Akses Ditangguhkan, Hanya Direktur Yang Dapat Mengakses');
         }
     }
 
@@ -99,7 +99,7 @@ class AkunController extends Controller
     public function tambahAkun(Request $request)
     {
         $user = Auth::user();
-        if ($user->posisi == 'admin') {
+        if ($user->posisi == 'direktur') {
             if ($request->isMethod('post')) {
 
                 $this->validate($request, [
@@ -127,7 +127,7 @@ class AkunController extends Controller
             }
             return view('page.admin.akun.addAkun');
         } else {
-            return redirect()->route('home')->with('status', 'Akses Ditangguhkan, Hanya Admin Yang Dapat Mengakses');
+            return redirect()->route('home')->with('status', 'Akses Ditangguhkan, Hanya Direktur Yang Dapat Mengakses');
         }
     }
 

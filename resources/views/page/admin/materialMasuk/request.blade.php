@@ -1,5 +1,5 @@
 @extends('layouts.base_admin.base_dashboard')
-@section('judul', 'List Customer')
+@section('judul', 'List Material Masuk')
 @section('script_head')
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.20/css/dataTables.bootstrap4.min.css">
   <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -10,14 +10,14 @@
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1>Customer</h1>
+          <h1>Request Material Masuk</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item">
               <a href="{{ route('home') }}">Beranda</a>
             </li>
-            <li class="breadcrumb-item active">Customer</li>
+            <li class="breadcrumb-item active">Request Material Masuk</li>
           </ol>
         </div>
       </div>
@@ -57,20 +57,22 @@
             </div>
           </div>
 
-          <a href="customer/pdf" class="btn btn-success" style="height: fit-content;">Download PDF</a>
+          <a href="materialMasuk/pdf" class="btn btn-success" style="height: fit-content;">Download PDF</a>
         </div>
 
-        <table id="preview_customer" class="table-striped table-bordered display table" style="width:100%">
+        <table id="previewMaterialMasuk" class="table-striped table-bordered display table" style="width:100%">
           <thead>
             <tr>
-              <th style="width: 5%;">No</th>
-              <th style="width: 15%;">Tanggal Daftar</th>
-              <th style="width: 20%;">Nama</th>
-              <th style="width: 10%;">Kode</th>
-              <th style="width: 15%;">Telepon</th>
-              <th style="width: 25%;">Alamat</th>
+              <th>No</th>
+              <th>Waktu</th>
+              <th>Nama Material</th>
+              <th>Kode Material</th>
+              <th>Jumlah</th>
+              <th>Satuan</th>
+              <th>Oleh</th>
+              <th>Status</th>
               @if (auth()->user()->hasRole('direktur'))
-                <th style="width: 10%;">Action</th>
+                <th>Action</th>
               @endif
             </tr>
           </thead>
@@ -89,17 +91,18 @@
   <script type="text/javascript" src="https://cdn.datatables.net/1.10.20/js/dataTables.bootstrap4.min.js"></script>
   <script>
     $(document).ready(function() {
-      var t = $('#preview_customer').DataTable({
+      var t = $('#previewMaterialMasuk').DataTable({
         "serverSide": true,
         "processing": true,
         "ajax": {
-          "url": "{{ route('customer.dataTable') }}",
+          "url": "{{ route('materialMasuk.dataTable') }}",
           "dataType": "json",
           "type": "POST",
           "data": function(d) {
             d._token = "{{ csrf_token() }}";
             d.start_date = $('#start_date').val();
             d.end_date = $('#end_date').val();
+            d.status_type = 'request';
           }
         },
         "columns": [{
@@ -108,19 +111,25 @@
             "searchable": false
           },
           {
-            "data": "register_date"
+            "data": "waktu"
           },
           {
-            "data": "name"
+            "data": "nama_material"
           },
           {
-            "data": "code"
+            "data": "kode_material"
           },
           {
-            "data": "phone"
+            "data": "jumlah"
           },
           {
-            "data": "address"
+            "data": "satuan"
+          },
+          {
+            "data": "created_by"
+          },
+          {
+            "data": "status"
           },
           @if (auth()->user()->hasRole('direktur'))
             {
@@ -155,7 +164,7 @@
       });
 
       t.on('draw.dt', function() {
-        var PageInfo = $('#preview_customer').DataTable().page.info();
+        var PageInfo = $('#previewMaterialMasuk').DataTable().page.info();
         t.column(0, {
           page: 'current'
         }).nodes().each(function(cell, i) {
@@ -164,7 +173,7 @@
       });
 
       // hapus data
-      $('#preview_customer').on('click', '.hapusData', function() {
+      $('#previewMaterialMasuk').on('click', '.hapusData', function() {
         var id = $(this).data("id");
         var url = $(this).data("url");
         Swal.fire({
@@ -187,7 +196,7 @@
               },
               success: function(response) {
                 Swal.fire('Terhapus!', response.msg, 'success');
-                $('#preview_customer').DataTable().ajax.reload();
+                $('#previewMaterialMasuk').DataTable().ajax.reload();
               },
               error: function(xhr) {
                 Swal.fire('Gagal!', xhr.responseJSON.msg, 'error');
@@ -195,6 +204,30 @@
             });
           }
         })
+      });
+
+      $('#previewMaterialMasuk').on('change', '.status', function() {
+        const id = $(this).data('id');
+        const status = $(this).val();
+
+        console.log('Status changed:', status);
+
+        $.ajax({
+          url: "{{ route('materialMasuk.updateStatus') }}",
+          type: 'POST',
+          data: {
+            status: status,
+            id: id,
+            _token: "{{ csrf_token() }}"
+          },
+          success: function(response) {
+            console.log('Status updated:', response);
+            t.ajax.reload();
+          },
+          error: function(xhr, status, error) {
+            console.error('Failed to update status:', error);
+          }
+        });
       });
 
       // Add event listener for the filter button

@@ -4,13 +4,13 @@
           'href' => route('home'),
           'text' => 'Dashboard',
           'icon' => 'fas fa-home',
-          'admin_only' => false,
+          'direktur_only' => false,
           'is_multi' => false,
       ],
       [
           'text' => 'Kelola Akun',
           'icon' => 'fas fa-users',
-          'admin_only' => true,
+          'direktur_only' => true,
           'is_multi' => true,
           'href' => [
               [
@@ -28,7 +28,7 @@
       [
           'text' => 'Data Material',
           'icon' => 'fas fa-table',
-          'admin_only' => false,
+          'direktur_only' => false,
           'is_multi' => true,
           'href' => [
               [
@@ -46,13 +46,18 @@
       [
           'text' => 'Material Masuk',
           'icon' => 'fas fa-arrow-down',
-          'admin_only' => false,
+          'direktur_only' => false,
           'is_multi' => true,
           'href' => [
               [
                   'section_text' => 'Material Masuk',
                   'section_icon' => 'far fa-circle',
                   'section_href' => route('materialMasuk.index'),
+              ],
+              [
+                  'section_text' => 'Request Material Masuk',
+                  'section_icon' => 'far fa-circle',
+                  'section_href' => route('materialMasuk.request'),
               ],
               [
                   'section_text' => 'Tambah Material Masuk',
@@ -64,7 +69,7 @@
       [
           'text' => 'Material Keluar',
           'icon' => 'fas fa-arrow-up',
-          'admin_only' => false,
+          'direktur_only' => false,
           'is_multi' => true,
           'href' => [
               [
@@ -82,7 +87,7 @@
       [
           'text' => 'Stok Material',
           'icon' => 'fas fa-box',
-          'admin_only' => false,
+          'direktur_only' => false,
           'is_multi' => true,
           'href' => [
               [
@@ -100,7 +105,7 @@
       [
           'text' => 'Supplier',
           'icon' => 'fas fa-truck',
-          'admin_only' => false,
+          'direktur_only' => false,
           'is_multi' => true,
           'href' => [
               [
@@ -118,7 +123,7 @@
       [
           'text' => 'Customer',
           'icon' => 'fas fa-user',
-          'admin_only' => false,
+          'direktur_only' => false,
           'is_multi' => true,
           'href' => [
               [
@@ -163,7 +168,7 @@
         <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
         @foreach ($navigation_links as $link)
-          @if ($link->admin_only && !auth()->user()->hasRole('admin'))
+          @if ($link->direktur_only && !auth()->user()->hasRole('direktur'))
             @continue
           @endif
 

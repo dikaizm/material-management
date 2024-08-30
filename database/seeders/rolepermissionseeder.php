@@ -19,33 +19,38 @@ class rolepermissionseeder extends Seeder
         $permission = [
             'kelola akun',
             'kelola data',
-            
         ];
 
         foreach ( $permission as $key ) {
             Permission::firstOrCreate([
                 'name'=> $key,
-            
             ]);
 
         }
+        $direkturrole = Role::firstOrCreate([
+            'name'=>'direktur'
+        ]);
+
+        $direkturpermission=[
+            'kelola akun',
+            'kelola data',
+        ];
+        $direkturrole->syncPermissions($direkturpermission);
+
         $adminrole = Role::firstOrCreate([
             'name'=>'admin'
         ]);
 
         $adminpermission=[
-            'kelola akun',
             'kelola data',
         ];
         $adminrole->syncPermissions($adminpermission);
-
 
         $staffgudangrole = Role::firstOrCreate([
             'name'=>'staffgudang'
         ]);
 
         $staffgudangpermission=[
-        
             'kelola data'
         ];
         $staffgudangrole->syncPermissions($staffgudangpermission);
